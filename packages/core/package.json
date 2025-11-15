@@ -1,0 +1,16 @@
+{
+  "name": "@graph-battle/core",
+  "version": "0.1.0",
+  "description": "Core engine primitives for the Graph Battle game.",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "graph-battle",
+    "game",
+    "engine"
+  ],
+  "license": "MIT"
+}

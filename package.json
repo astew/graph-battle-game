@@ -1,0 +1,15 @@
+{
+  "name": "graph-battle-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for the Graph Battle strategy game.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "prepare-workspaces": "node scripts/link-workspaces.js",
+    "build": "npm run prepare-workspaces && npm run build --workspaces",
+    "test": "npm run prepare-workspaces && npm run test --workspaces"
+  }
+}

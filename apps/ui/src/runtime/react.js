@@ -1,10 +1,10 @@
-function createElement(type, props, ...children) {
-  return { type, props: props || {}, children }; 
+export function createElement(type, props, ...children) {
+  return { type, props: props || {}, children };
 }
 
-const StrictMode = ({ children }) => children;
+export const StrictMode = ({ children }) => children;
 
-module.exports = {
+export default {
   createElement,
   StrictMode,
 };

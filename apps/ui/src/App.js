@@ -1,6 +1,6 @@
-const React = require('./runtime/react');
+import React from 'react';
 
-function App() {
+export default function App() {
   return React.createElement(
     'main',
     { className: 'app-shell' },
@@ -12,5 +12,3 @@ function App() {
     )
   );
 }
-
-module.exports = App;

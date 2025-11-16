@@ -1,17 +1,14 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const App = require('../src/App');
-
-function flattenText(vnode) {
-  if (typeof vnode === 'string') {
-    return vnode;
-  }
-  return (vnode.children || []).map(flattenText).join('');
-}
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import App from '../src/App.js';
 
 test('App renders a heading with the game name', () => {
-  const tree = App();
-  const heading = tree.children.find((child) => child.type === 'h1');
-  assert.ok(heading, 'heading element should exist');
-  assert.match(flattenText(heading), /Graph Battle/);
+  const markup = renderToStaticMarkup(React.createElement(App));
+  assert.match(markup, /<h1[^>]*>Graph Battle<\/h1>/);
+  assert.match(
+    markup,
+    /Welcome to the Graph Battle prototype\. Gameplay implementation is coming soon\./
+  );
 });

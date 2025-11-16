@@ -32,7 +32,7 @@ function createDomNode(vnode) {
   return element;
 }
 
-function createRoot(container) {
+export function createRoot(container) {
   return {
     render(node) {
       container.innerHTML = '';
@@ -44,6 +44,6 @@ function createRoot(container) {
   };
 }
 
-module.exports = {
+export default {
   createRoot,
 };

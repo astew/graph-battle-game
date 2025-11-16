@@ -8,7 +8,7 @@ test('describeSimulation summarizes configuration', () => {
     selectAction: () => ({ attackerNodeId: null, targetNodeId: null }),
   }));
 
-  const summary = describeSimulation(config, { nodes: [], currentPlayer: 'red' });
+  const summary = describeSimulation(config, { nodes: [], currentPlayerId: 'red' });
   assert.match(summary, /2 players/);
   assert.match(summary, /current player: red/);
 });

@@ -1,11 +1,12 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const {
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
   createNodeState,
   createBoardState,
   createTurnState,
   advanceTurnState,
-} = require('../src/domain/entities');
+} from '../src/domain/entities.js';
 
 test('createNodeState guards against invalid arguments', () => {
   assert.throws(() => createNodeState({ id: '' }), /Node id must be a non-empty string/);

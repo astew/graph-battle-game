@@ -1,6 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { createDoNothingBot, createBotContext } = require('../src/index');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { createDoNothingBot, createBotContext } from '../src/index.js';
 
 test('createDoNothingBot generates a color-coded name and passive action', () => {
   const bot = createDoNothingBot('green');

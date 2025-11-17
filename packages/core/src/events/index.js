@@ -1,4 +1,4 @@
-const EVENT_TYPES = Object.freeze({
+export const EVENT_TYPES = Object.freeze({
   GAME_STARTED: 'core.event.gameStarted',
   TURN_STARTED: 'core.event.turnStarted',
   TURN_ENDED: 'core.event.turnEnded',
@@ -6,7 +6,7 @@ const EVENT_TYPES = Object.freeze({
   REINFORCEMENTS_AWARDED: 'core.event.reinforcementsAwarded',
 });
 
-class EventBus {
+export class EventBus {
   constructor() {
     this.handlers = new Map();
   }
@@ -43,8 +43,3 @@ class EventBus {
     }
   }
 }
-
-module.exports = {
-  EVENT_TYPES,
-  EventBus,
-};

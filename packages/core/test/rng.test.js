@@ -1,6 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { createMulberry32 } = require('../src/rng/mulberry32');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { createMulberry32 } from '../src/rng/mulberry32.js';
 
 test('createMulberry32 generates deterministic sequences', () => {
   const rngA = createMulberry32(42);

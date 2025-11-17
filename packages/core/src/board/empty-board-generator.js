@@ -1,6 +1,6 @@
-const { createBoardState, createNodeState } = require('../domain/entities');
+import { createBoardState, createNodeState } from '../domain/entities.js';
 
-class EmptyBoardGenerator {
+export class EmptyBoardGenerator {
   constructor({ nodeCount = 0 } = {}) {
     if (!Number.isInteger(nodeCount) || nodeCount < 0) {
       throw new Error('nodeCount must be a non-negative integer.');
@@ -18,7 +18,3 @@ class EmptyBoardGenerator {
     return createBoardState({ nodes, edges: [] });
   }
 }
-
-module.exports = {
-  EmptyBoardGenerator,
-};

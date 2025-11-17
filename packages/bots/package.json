@@ -2,6 +2,7 @@
   "name": "@graph-battle/bots",
   "version": "0.1.0",
   "description": "Pluggable AI policies for Graph Battle computer opponents.",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
     "build": "node scripts/build.js",

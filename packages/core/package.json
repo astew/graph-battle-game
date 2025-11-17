@@ -2,6 +2,7 @@
   "name": "@graph-battle/core",
   "version": "0.1.0",
   "description": "Core engine primitives for the Graph Battle game.",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
     "build": "node scripts/build.js",

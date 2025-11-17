@@ -2,6 +2,7 @@
   "name": "@graph-battle/simulator",
   "version": "0.1.0",
   "description": "Utilities for running automated Graph Battle simulations.",
+  "type": "module",
   "main": "src/index.js",
   "bin": {
     "graph-battle-sim": "src/index.js"

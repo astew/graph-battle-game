@@ -27,3 +27,7 @@
 
 ## Coding Conventions (Placeholder)
 - Repository-wide code-style conventions will be documented later. Follow existing patterns in affected files until specific rules are defined here or in child guides.
+
+
+## Miscellaneous
+- "Fallback logic" is anathema in this repository. Its primary purpose is to mask bugs. All code should be **strict** about the form of its inputs, whether that comes from arguments, results of function calls, configuration files, the user, or any other source.

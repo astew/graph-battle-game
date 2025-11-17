@@ -1,14 +1,25 @@
-const domain = require('./domain/entities');
-const actions = require('./actions');
-const { GameEngine, ERROR_CODES } = require('./engine/game-engine');
-const { EmptyBoardGenerator } = require('./board/empty-board-generator');
-const { StandardBoardGenerator } = require('./board/standard-board-generator');
-const { createMulberry32 } = require('./rng/mulberry32');
-const events = require('./events');
+import * as domain from './domain/entities.js';
+import * as actions from './actions.js';
+import { GameEngine, ERROR_CODES } from './engine/game-engine.js';
+import * as combat from './engine/combat.js';
+import { EmptyBoardGenerator } from './board/empty-board-generator.js';
+import { StandardBoardGenerator } from './board/standard-board-generator.js';
+import { createMulberry32 } from './rng/mulberry32.js';
+import * as events from './events/index.js';
 
-module.exports = {
+export * from './domain/entities.js';
+export * from './actions.js';
+export * from './engine/combat.js';
+export * from './events/index.js';
+export { GameEngine, ERROR_CODES } from './engine/game-engine.js';
+export { EmptyBoardGenerator } from './board/empty-board-generator.js';
+export { StandardBoardGenerator } from './board/standard-board-generator.js';
+export { createMulberry32 } from './rng/mulberry32.js';
+
+const coreApi = {
   ...domain,
   ...actions,
+  ...combat,
   GameEngine,
   ERROR_CODES,
   EmptyBoardGenerator,
@@ -16,3 +27,5 @@ module.exports = {
   createMulberry32,
   ...events,
 };
+
+export default coreApi;

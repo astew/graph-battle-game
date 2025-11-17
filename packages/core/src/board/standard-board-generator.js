@@ -1,4 +1,4 @@
-const { createBoardState, createNodeState } = require('../domain/entities');
+import { createBoardState, createNodeState } from '../domain/entities.js';
 
 const GRID_ROWS = 6;
 const GRID_COLUMNS = 8;
@@ -12,7 +12,7 @@ function clampIndex(value, max) {
   return normalized;
 }
 
-class StandardBoardGenerator {
+export class StandardBoardGenerator {
   constructor({ rows = GRID_ROWS, columns = GRID_COLUMNS, targetNodeCount = TARGET_NODE_COUNT } = {}) {
     if (!Number.isInteger(rows) || rows <= 0) {
       throw new Error('rows must be a positive integer.');
@@ -274,7 +274,3 @@ class StandardBoardGenerator {
     return edges;
   }
 }
-
-module.exports = {
-  StandardBoardGenerator,
-};

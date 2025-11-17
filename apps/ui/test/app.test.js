@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import core from '@graph-battle/core';
-import App, { GameScreen, EventLog, formatEventLogEntry } from '../src/App.js';
+import App from '../src/App.jsx';
+import GameScreen, { EventLog } from '../src/components/GameScreen.jsx';
+import { formatEventLogEntry } from '../src/utils/gameHelpers.js';
 
 function renderApp() {
   return renderToStaticMarkup(React.createElement(App));
@@ -53,7 +55,7 @@ test('GameScreen renders battlefield, player track, and log', () => {
     })
   );
 
-  assert.match(markup, /Turn\s+3/);
+  assert.match(markup, /End Turn/);
   assert.match(markup, /Battlefield/);
   assert.match(markup, /player-track__badge/);
   assert.match(markup, /board-edge/);
@@ -84,26 +86,22 @@ test('Event log records end turn events', () => {
   assert.match(markup, /ended turn/);
 });
 
-test('Event log records end turn events', () => {
-  const eventBus = new core.EventBus();
+test('formatEventLogEntry formats end turn events', () => {
   const players = [
     { id: 'alpha', name: 'Alpha', color: '#f00' },
     { id: 'beta', name: 'Beta', color: '#0f0' },
   ];
   const playersById = new Map(players.map((player) => [player.id, player]));
-  const entries = [];
-  eventBus.subscribe(core.EVENT_TYPES.TURN_ENDED, (event) => {
-    entries.push({
-      id: `log-${entries.length + 1}`,
-      label: formatEventLogEntry(event, playersById),
-    });
-  });
+  const event = {
+    type: core.EVENT_TYPES.TURN_ENDED,
+    payload: {
+      turn: {
+        number: 3,
+        activePlayerId: 'alpha',
+      },
+    },
+  };
 
-  const engine = new core.GameEngine({ players, eventBus });
-  const { activePlayerId } = engine.getState().turn;
-  engine.applyAction(core.createEndTurnAction(activePlayerId));
-
-  const markup = renderToStaticMarkup(React.createElement(EventLog, { entries }));
-  assert.ok(entries.length > 0);
-  assert.match(markup, /ended turn/);
+  const label = formatEventLogEntry(event, playersById);
+  assert.match(label, /Alpha ended turn 3/);
 });

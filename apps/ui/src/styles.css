@@ -115,12 +115,6 @@ body {
   transform: translateY(-1px);
 }
 
-.status-panel__detail {
-  color: #4b495a;
-  margin-top: 0;
-  margin-bottom: 1rem;
-}
-
 .end-turn-button {
   border: none;
   border-radius: 999px;
@@ -135,21 +129,13 @@ body {
 }
 
 .game-screen {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  align-items: stretch;
 }
 
 .board-panel {
-  grid-column: 1 / -1;
   position: relative;
-}
-
-@media (min-width: 900px) {
-  .board-panel {
-    grid-column: span 2;
-  }
 }
 
 .board-panel__header {
@@ -206,12 +192,18 @@ body {
     rgba(238, 240, 255, 0.8);
   border: 1px solid rgba(75, 91, 220, 0.1);
   padding: 1rem;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 .board-svg {
   width: 100%;
   height: 100%;
   display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 .board-slot {
@@ -257,9 +249,6 @@ body {
   stroke-width: 4;
 }
 
-.board-node--selected {
-  transform: scale(1.08);
-}
 
 .board-node--selected circle {
   stroke: #fb8500;
@@ -296,6 +285,9 @@ body {
   fill: #121019;
   font-weight: 600;
   font-size: 0.85rem;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 .board-empty {
@@ -329,8 +321,12 @@ body {
   color: #4b495a;
 }
 
+.turn-controls {
+  display: flex;
+  justify-content: center;
+}
+
 .event-panel {
-  grid-column: 1 / -1;
   max-height: 320px;
   overflow: hidden;
 }

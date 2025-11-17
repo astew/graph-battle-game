@@ -43,8 +43,7 @@ class StandardBoardGenerator {
     }
 
     const random = this.#normalizeRandom(rng);
-    const traversalOrder = this.#generateTraversalOrder(random);
-    const selectedCells = traversalOrder.slice(0, this.targetNodeCount);
+    const selectedCells = this.#selectCells(random);
     const nodes = selectedCells.map((position, index) => ({
       id: `node-${index + 1}`,
       position,
@@ -53,7 +52,11 @@ class StandardBoardGenerator {
     const nodeStates = this.#assignOwnership(nodes, players, random);
     const edges = this.#buildEdges(selectedCells, nodeStates);
 
-    return createBoardState({ nodes: nodeStates, edges });
+    return createBoardState({
+      nodes: nodeStates,
+      edges,
+      dimensions: { rows: this.rows, columns: this.columns },
+    });
   }
 
   #normalizeRandom(rng) {
@@ -111,6 +114,72 @@ class StandardBoardGenerator {
     }
 
     return order;
+  }
+
+  #selectCells(rng) {
+    const allCells = [];
+    for (let row = 0; row < this.rows; row += 1) {
+      for (let column = 0; column < this.columns; column += 1) {
+        allCells.push({ row, column });
+      }
+    }
+
+    const cellMap = new Map(allCells.map((cell) => [this.#coordinatesKey(cell), cell]));
+    const activeKeys = new Set(cellMap.keys());
+    const targetSize = this.targetNodeCount;
+    const maxAttempts = 50;
+    let attempt = 0;
+
+    while (activeKeys.size > targetSize && attempt < maxAttempts) {
+      const removalOrder = Array.from(activeKeys);
+      this.#shuffle(removalOrder, rng);
+
+      for (const key of removalOrder) {
+        if (activeKeys.size <= targetSize) {
+          break;
+        }
+
+        activeKeys.delete(key);
+        if (!this.#isConnectedSet(activeKeys, cellMap)) {
+          activeKeys.add(key);
+        }
+      }
+
+      attempt += 1;
+    }
+
+    if (activeKeys.size !== targetSize) {
+      const traversalOrder = this.#generateTraversalOrder(rng);
+      return traversalOrder.slice(0, targetSize);
+    }
+
+    return Array.from(activeKeys).map((key) => cellMap.get(key));
+  }
+
+  #isConnectedSet(activeKeys, cellMap) {
+    if (activeKeys.size === 0) {
+      return true;
+    }
+
+    const iterator = activeKeys.values().next();
+    const startKey = iterator.value;
+    const queue = [cellMap.get(startKey)];
+    const visited = new Set([startKey]);
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      for (const neighbor of this.#neighbors(current)) {
+        const neighborKey = this.#coordinatesKey(neighbor);
+        if (!activeKeys.has(neighborKey) || visited.has(neighborKey)) {
+          continue;
+        }
+
+        visited.add(neighborKey);
+        queue.push(cellMap.get(neighborKey));
+      }
+    }
+
+    return visited.size === activeKeys.size;
   }
 
   #neighbors({ row, column }) {

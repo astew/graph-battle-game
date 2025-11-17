@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import App, { GameScreen } from '../src/App.js';
+import core from '@graph-battle/core';
+import App, { GameScreen, EventLog, formatEventLogEntry } from '../src/App.js';
 
 function renderApp() {
   return renderToStaticMarkup(React.createElement(App));
@@ -14,7 +15,7 @@ test('App renders the title screen by default', () => {
   assert.match(markup, /New Game/);
 });
 
-test('GameScreen renders battlefield and player information', () => {
+test('GameScreen renders battlefield, player track, and log', () => {
   const view = {
     currentPlayerId: 'p1',
     turnNumber: 3,
@@ -23,18 +24,62 @@ test('GameScreen renders battlefield and player information', () => {
       { id: 'b', ownerId: 'p2', strength: 1, position: { row: 0, column: 1 } },
     ],
     edges: [['a', 'b']],
+    reinforcements: {
+      preview: { total: 0, eligibleNodeIds: [] },
+      lastAwarded: null,
+    },
   };
   const players = [
     { id: 'p1', name: 'Alpha', color: '#f00' },
     { id: 'p2', name: 'Beta', color: '#0f0' },
   ];
+  const noop = () => {};
   const markup = renderToStaticMarkup(
-    React.createElement(GameScreen, { view, players, onEndTurn: () => {} })
+    React.createElement(GameScreen, {
+      view,
+      players,
+      onEndTurn: noop,
+      onNodeSelect: noop,
+      interaction: { mode: 'idle', attackerId: null },
+      actionableNodeIds: new Set(),
+      targetNodeIds: new Set(),
+      eventLog: [],
+      actionMessage: '',
+      reinforcements: view.reinforcements,
+      onCancel: noop,
+      reinforcementHighlights: new Set(),
+      gridDimensions: { rows: 6, columns: 8 },
+      highlightedEdges: new Set(),
+    })
   );
 
   assert.match(markup, /Turn\s+3/);
   assert.match(markup, /Battlefield/);
-  assert.match(markup, /Players/);
-  assert.match(markup, /Alpha/);
+  assert.match(markup, /player-track__badge/);
   assert.match(markup, /board-edge/);
+  assert.match(markup, /Event Log/);
+});
+
+test('Event log records end turn events', () => {
+  const eventBus = new core.EventBus();
+  const players = [
+    { id: 'alpha', name: 'Alpha', color: '#f00' },
+    { id: 'beta', name: 'Beta', color: '#0f0' },
+  ];
+  const playersById = new Map(players.map((player) => [player.id, player]));
+  const entries = [];
+  eventBus.subscribe(core.EVENT_TYPES.TURN_ENDED, (event) => {
+    entries.push({
+      id: `log-${entries.length + 1}`,
+      label: formatEventLogEntry(event, playersById),
+    });
+  });
+
+  const engine = new core.GameEngine({ players, eventBus });
+  const { activePlayerId } = engine.getState().turn;
+  engine.applyAction(core.createEndTurnAction(activePlayerId));
+
+  const markup = renderToStaticMarkup(React.createElement(EventLog, { entries }));
+  assert.ok(entries.length > 0);
+  assert.match(markup, /ended turn/);
 });

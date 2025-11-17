@@ -70,7 +70,7 @@ function findEligibleBorderNodes(board, playerId, territoryNodeIds) {
   return eligible;
 }
 
-function evaluateReinforcements(board, playerId) {
+export function evaluateReinforcements(board, playerId) {
   assertBoard(board);
   assertPlayerId(playerId);
 
@@ -102,7 +102,7 @@ function shuffle(array, randomFn = Math.random) {
   }
 }
 
-function allocateReinforcements({ board, playerId, random }) {
+export function allocateReinforcements({ board, playerId, random }) {
   const summary = evaluateReinforcements(board, playerId);
   const { eligibleNodeIds, baseAmount, remainder } = summary;
   const allocations = [];
@@ -133,8 +133,3 @@ function allocateReinforcements({ board, playerId, random }) {
 
   return { ...summary, allocations };
 }
-
-module.exports = {
-  evaluateReinforcements,
-  allocateReinforcements,
-};

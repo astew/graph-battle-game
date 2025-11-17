@@ -1,4 +1,4 @@
-function createMulberry32(seed) {
+export function createMulberry32(seed) {
   let state = seed >>> 0;
   return {
     next() {
@@ -11,5 +11,3 @@ function createMulberry32(seed) {
     },
   };
 }
-
-module.exports = { createMulberry32 };

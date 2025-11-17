@@ -1,9 +1,11 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { GameEngine } = require('../src/engine/game-engine');
-const { createEndTurnAction, createAttackAction } = require('../src/actions');
-const { EventBus, EVENT_TYPES } = require('../src/events');
-const { createBoardState } = require('../src/domain/entities');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { GameEngine } from '../src/engine/game-engine.js';
+import { canExecuteAttack, ATTACK_INELIGIBILITY_REASONS } from '../src/engine/combat.js';
+import { createEndTurnAction, createAttackAction } from '../src/actions.js';
+import { EventBus, EVENT_TYPES } from '../src/events/index.js';
+import { createBoardState } from '../src/domain/entities.js';
 
 const PLAYERS = [
   { id: 'p1' },
@@ -135,6 +137,52 @@ test('GameEngine rejects illegal attacks', () => {
 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'core.error.invalidAttack');
+});
+
+test('canExecuteAttack reflects engine attack rules', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 3 },
+      { id: 'b', ownerId: 'p2', strength: 1 },
+      { id: 'c', ownerId: 'p2', strength: 1 },
+    ],
+    edges: [
+      ['a', 'b'],
+    ],
+  });
+
+  const success = canExecuteAttack({
+    board,
+    playerId: 'p1',
+    attackerId: 'a',
+    defenderId: 'b',
+  });
+  assert.equal(success.ok, true);
+
+  const failure = canExecuteAttack({
+    board,
+    playerId: 'p1',
+    attackerId: 'a',
+    defenderId: 'c',
+  });
+  assert.equal(failure.ok, false);
+  assert.equal(failure.reason, ATTACK_INELIGIBILITY_REASONS.NOT_ADJACENT);
+});
+
+test('canExecuteAttack throws when board references unknown nodes', () => {
+  const board = createBoardState({
+    nodes: [{ id: 'a', ownerId: 'p1', strength: 3 }],
+    edges: [],
+  });
+
+  assert.throws(() => {
+    canExecuteAttack({
+      board,
+      playerId: 'p1',
+      attackerId: 'a',
+      defenderId: 'missing',
+    });
+  }, /missing expected nodes/);
 });
 
 test('GameEngine awards reinforcements after a player ends their turn', () => {

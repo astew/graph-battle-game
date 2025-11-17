@@ -1,10 +1,11 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { createBoardState } = require('../src/domain/entities');
-const {
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { createBoardState } from '../src/domain/entities.js';
+import {
   evaluateReinforcements,
   allocateReinforcements,
-} = require('../src/engine/reinforcements');
+} from '../src/engine/reinforcements.js';
 
 function createBoardFixture() {
   return createBoardState({

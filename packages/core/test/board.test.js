@@ -1,8 +1,9 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { EmptyBoardGenerator } = require('../src/board/empty-board-generator');
-const { StandardBoardGenerator } = require('../src/board/standard-board-generator');
-const { createMulberry32 } = require('../src/rng/mulberry32');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { EmptyBoardGenerator } from '../src/board/empty-board-generator.js';
+import { StandardBoardGenerator } from '../src/board/standard-board-generator.js';
+import { createMulberry32 } from '../src/rng/mulberry32.js';
 
 const PLAYERS = [
   { id: 'p1' },

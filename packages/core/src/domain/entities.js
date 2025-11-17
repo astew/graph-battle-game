@@ -1,6 +1,6 @@
-const DEFAULT_PLAYER_COLORS = ['red', 'green', 'yellow', 'blue', 'purple'];
+export const DEFAULT_PLAYER_COLORS = ['red', 'green', 'yellow', 'blue', 'purple'];
 
-function createPlayer(config) {
+export function createPlayer(config) {
   if (!config || typeof config.id !== 'string' || config.id.length === 0) {
     throw new Error('Player id must be a non-empty string.');
   }
@@ -14,7 +14,7 @@ function createPlayer(config) {
   });
 }
 
-function normalizePosition(position) {
+export function normalizePosition(position) {
   if (position == null) {
     return undefined;
   }
@@ -35,7 +35,7 @@ function normalizePosition(position) {
   return Object.freeze({ row, column });
 }
 
-function createNodeState({ id, ownerId = null, strength = 0, position = undefined }) {
+export function createNodeState({ id, ownerId = null, strength = 0, position = undefined }) {
   if (typeof id !== 'string' || id.length === 0) {
     throw new Error('Node id must be a non-empty string.');
   }
@@ -53,7 +53,7 @@ function createNodeState({ id, ownerId = null, strength = 0, position = undefine
   return Object.freeze({ id, ownerId, strength, position: normalizedPosition });
 }
 
-function normalizeDimensions(dimensions) {
+export function normalizeDimensions(dimensions) {
   if (dimensions == null) {
     return undefined;
   }
@@ -74,7 +74,7 @@ function normalizeDimensions(dimensions) {
   return Object.freeze({ rows, columns });
 }
 
-function createBoardState({ nodes = [], edges = [], dimensions = undefined }) {
+export function createBoardState({ nodes = [], edges = [], dimensions = undefined }) {
   const nodeMap = new Map();
   for (const node of nodes) {
     if (nodeMap.has(node.id)) {
@@ -108,7 +108,7 @@ function createBoardState({ nodes = [], edges = [], dimensions = undefined }) {
   });
 }
 
-function createTurnState({ number = 1, orderIndex = 0, activePlayerId }) {
+export function createTurnState({ number = 1, orderIndex = 0, activePlayerId }) {
   if (typeof activePlayerId !== 'string' || activePlayerId.length === 0) {
     throw new Error('activePlayerId is required.');
   }
@@ -124,7 +124,7 @@ function createTurnState({ number = 1, orderIndex = 0, activePlayerId }) {
   return Object.freeze({ number, orderIndex, activePlayerId });
 }
 
-function createGameState({ board, players, turn }) {
+export function createGameState({ board, players, turn }) {
   if (!board) {
     throw new Error('GameState requires a board.');
   }
@@ -147,7 +147,7 @@ function createGameState({ board, players, turn }) {
   });
 }
 
-function advanceTurnState(turn, players) {
+export function advanceTurnState(turn, players) {
   if (!turn) {
     throw new Error('turn is required to advance.');
   }
@@ -167,15 +167,3 @@ function advanceTurnState(turn, players) {
     activePlayerId: nextPlayer.id ?? nextPlayer,
   });
 }
-
-module.exports = {
-  DEFAULT_PLAYER_COLORS,
-  createPlayer,
-  createNodeState,
-  createBoardState,
-  normalizeDimensions,
-  createTurnState,
-  createGameState,
-  advanceTurnState,
-  normalizePosition,
-};

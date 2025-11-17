@@ -1,9 +1,9 @@
-const ACTION_TYPES = Object.freeze({
+export const ACTION_TYPES = Object.freeze({
   END_TURN: 'core.action.endTurn',
   ATTACK: 'core.action.attack',
 });
 
-function createEndTurnAction(playerId) {
+export function createEndTurnAction(playerId) {
   if (typeof playerId !== 'string' || playerId.length === 0) {
     throw new Error('playerId is required for end turn action.');
   }
@@ -14,7 +14,7 @@ function createEndTurnAction(playerId) {
   });
 }
 
-function createAttackAction({ playerId, attackerId, defenderId }) {
+export function createAttackAction({ playerId, attackerId, defenderId }) {
   if (typeof playerId !== 'string' || playerId.length === 0) {
     throw new Error('playerId is required for attack actions.');
   }
@@ -35,7 +35,7 @@ function createAttackAction({ playerId, attackerId, defenderId }) {
   });
 }
 
-function validateAction(action) {
+export function validateAction(action) {
   if (!action || typeof action !== 'object') {
     throw new Error('Action must be an object.');
   }
@@ -64,10 +64,3 @@ function validateAction(action) {
     }
   }
 }
-
-module.exports = {
-  ACTION_TYPES,
-  createEndTurnAction,
-  createAttackAction,
-  validateAction,
-};

@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test"
+  "test": "node --import ./register-esm-loader.js --test test/app.test.js",
+    "test:e2e": "npm run test:e2e:prod",
+    "test:e2e:prod": "npm run build && PLAYWRIGHT_SERVER_MODE=preview playwright test",
+    "test:e2e:dev": "PLAYWRIGHT_SERVER_MODE=dev playwright test"
   },
   "dependencies": {
     "@graph-battle/core": "file:../../packages/core",
@@ -16,6 +19,8 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@esbuild-kit/esm-loader": "^2.6.5",
+    "@playwright/test": "^1.48.2",
     "@vitejs/plugin-react": "^5.0.4",
     "vite": "^5.2.0"
   }

@@ -1,22 +1,23 @@
-const { ACTION_TYPES, validateAction } = require('../actions');
-const { EmptyBoardGenerator } = require('../board/empty-board-generator');
-const {
+import { ACTION_TYPES, validateAction } from '../actions.js';
+import { EmptyBoardGenerator } from '../board/empty-board-generator.js';
+import {
   createGameState,
   advanceTurnState,
   createNodeState,
-} = require('../domain/entities');
-const { EventBus, EVENT_TYPES } = require('../events');
-const {
+} from '../domain/entities.js';
+import { EventBus, EVENT_TYPES } from '../events/index.js';
+import {
   allocateReinforcements,
   evaluateReinforcements,
-} = require('./reinforcements');
+} from './reinforcements.js';
+import { canExecuteAttack } from './combat.js';
 
-const ERROR_CODES = Object.freeze({
+export const ERROR_CODES = Object.freeze({
   OUT_OF_TURN: 'core.error.outOfTurn',
   INVALID_ATTACK: 'core.error.invalidAttack',
 });
 
-class GameEngine {
+export class GameEngine {
   constructor({ players, boardGenerator = new EmptyBoardGenerator(), eventBus = new EventBus(), rng } = {}) {
     if (!Array.isArray(players) || players.length === 0) {
       throw new Error('GameEngine requires at least one player.');
@@ -95,29 +96,18 @@ class GameEngine {
       };
     }
 
-    const attackerNode = this.state.board.nodes.get(action.attackerId);
-    const defenderNode = this.state.board.nodes.get(action.defenderId);
-    const adjacency = this.state.board.adjacency.get(action.attackerId);
+    const evaluation = canExecuteAttack({
+      board: this.state.board,
+      playerId: action.playerId,
+      attackerId: action.attackerId,
+      defenderId: action.defenderId,
+    });
 
-    if (!attackerNode || !defenderNode) {
-      return this.#invalidAttack('Unknown attacker or defender.');
+    if (!evaluation.ok) {
+      return this.#invalidAttack(evaluation.message);
     }
 
-    if (attackerNode.ownerId !== action.playerId) {
-      return this.#invalidAttack('Attacker node does not belong to the player.');
-    }
-
-    if (!defenderNode.ownerId || defenderNode.ownerId === action.playerId) {
-      return this.#invalidAttack('Defender must be owned by an opponent.');
-    }
-
-    if (!adjacency || !adjacency.has(defenderNode.id)) {
-      return this.#invalidAttack('Attacker and defender must be adjacent.');
-    }
-
-    if (!Number.isInteger(attackerNode.strength) || attackerNode.strength < 2) {
-      return this.#invalidAttack('Attacker must have at least 2 strength to initiate an attack.');
-    }
+    const { attackerNode, defenderNode } = evaluation;
 
     const outcome = this.#resolveAttack(attackerNode, defenderNode);
 
@@ -304,8 +294,3 @@ class GameEngine {
     return Math.random();
   }
 }
-
-module.exports = {
-  GameEngine,
-  ERROR_CODES,
-};

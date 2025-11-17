@@ -1,6 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { createSimulationConfig, describeSimulation, runCli } = require('../src/index');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { createSimulationConfig, describeSimulation, runCli } from '../src/index.js';
 
 test('describeSimulation summarizes configuration', () => {
   const config = createSimulationConfig(['red', 'green'], (color) => ({

@@ -10,7 +10,7 @@ function normalizePlayerId(player) {
   throw new Error('A player id is required to create a bot context.');
 }
 
-function createEmptySnapshot(currentPlayerId) {
+export function createEmptySnapshot(currentPlayerId) {
   return Object.freeze({
     nodes: [],
     turnNumber: 1,
@@ -21,7 +21,7 @@ function createEmptySnapshot(currentPlayerId) {
   });
 }
 
-function createDoNothingBot(color) {
+export function createDoNothingBot(color) {
   const name = `${color}-idle-bot`;
   return {
     name,
@@ -35,15 +35,17 @@ function createDoNothingBot(color) {
   };
 }
 
-function createBotContext(currentPlayer) {
+export function createBotContext(currentPlayer) {
   const playerId = normalizePlayerId(currentPlayer);
   return {
     snapshot: createEmptySnapshot(playerId),
   };
 }
 
-module.exports = {
+const botsApi = Object.freeze({
   createDoNothingBot,
   createBotContext,
   createEmptySnapshot,
-};
+});
+
+export default botsApi;

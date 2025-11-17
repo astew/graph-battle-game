@@ -11,7 +11,9 @@ Graph Battle is a turn-based strategy game played on an undirected graph laid ou
 ## Game Board
 - The standard board is a 6×8 grid containing 30 nodes.
 - Nodes are connected with 8-adjacency (orthogonal and diagonal neighbors).
-- Boards are generated randomly with the constraint that no isolated sub-graphs may exist.
+- Board generation removes nodes at random from the 6×8 grid until 30 nodes remain, but the algorithm only accepts removals that preserve a single connected component.
+- The standard game always features exactly five players. Once the board is carved, node ownership is randomized so every player starts with six claimed nodes and **no unclaimed nodes remain**.
+- After ownership is assigned, each player receives 12 strength distributed randomly across their six starting nodes with a minimum of 1 strength per node.
 - Each node has two properties:
   - `color`: the player occupying the node.
   - `strength`: a non-negative integer representing attack and defense power.

@@ -1,5 +1,6 @@
 const ACTION_TYPES = Object.freeze({
   END_TURN: 'core.action.endTurn',
+  ATTACK: 'core.action.attack',
 });
 
 function createEndTurnAction(playerId) {
@@ -10,6 +11,27 @@ function createEndTurnAction(playerId) {
   return Object.freeze({
     type: ACTION_TYPES.END_TURN,
     playerId,
+  });
+}
+
+function createAttackAction({ playerId, attackerId, defenderId }) {
+  if (typeof playerId !== 'string' || playerId.length === 0) {
+    throw new Error('playerId is required for attack actions.');
+  }
+
+  if (typeof attackerId !== 'string' || attackerId.length === 0) {
+    throw new Error('attackerId is required for attack actions.');
+  }
+
+  if (typeof defenderId !== 'string' || defenderId.length === 0) {
+    throw new Error('defenderId is required for attack actions.');
+  }
+
+  return Object.freeze({
+    type: ACTION_TYPES.ATTACK,
+    playerId,
+    attackerId,
+    defenderId,
   });
 }
 
@@ -27,10 +49,25 @@ function validateAction(action) {
       throw new Error('End turn actions require a playerId.');
     }
   }
+
+  if (action.type === ACTION_TYPES.ATTACK) {
+    if (typeof action.playerId !== 'string' || action.playerId.length === 0) {
+      throw new Error('Attack actions require a playerId.');
+    }
+
+    if (typeof action.attackerId !== 'string' || action.attackerId.length === 0) {
+      throw new Error('Attack actions require an attackerId.');
+    }
+
+    if (typeof action.defenderId !== 'string' || action.defenderId.length === 0) {
+      throw new Error('Attack actions require a defenderId.');
+    }
+  }
 }
 
 module.exports = {
   ACTION_TYPES,
   createEndTurnAction,
+  createAttackAction,
   validateAction,
 };

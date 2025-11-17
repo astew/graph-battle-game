@@ -2,6 +2,7 @@ const EVENT_TYPES = Object.freeze({
   GAME_STARTED: 'core.event.gameStarted',
   TURN_STARTED: 'core.event.turnStarted',
   TURN_ENDED: 'core.event.turnEnded',
+  ATTACK_RESOLVED: 'core.event.attackResolved',
 });
 
 class EventBus {

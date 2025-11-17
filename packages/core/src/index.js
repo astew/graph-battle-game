@@ -1,21 +1,18 @@
-/**
- * Placeholder types describing the shape of a Graph Battle match. These will be
- * replaced with concrete implementations in future iterations.
- */
-const PLAYER_COLORS = ['red', 'green', 'yellow', 'blue', 'purple'];
-
-function createEmptySnapshot(currentPlayer) {
-  if (!PLAYER_COLORS.includes(currentPlayer)) {
-    throw new Error(`Unsupported player color: ${currentPlayer}`);
-  }
-
-  return {
-    nodes: [],
-    currentPlayer,
-  };
-}
+const domain = require('./domain/entities');
+const actions = require('./actions');
+const { GameEngine, ERROR_CODES } = require('./engine/game-engine');
+const { EmptyBoardGenerator } = require('./board/empty-board-generator');
+const { StandardBoardGenerator } = require('./board/standard-board-generator');
+const { createMulberry32 } = require('./rng/mulberry32');
+const events = require('./events');
 
 module.exports = {
-  PLAYER_COLORS,
-  createEmptySnapshot,
+  ...domain,
+  ...actions,
+  GameEngine,
+  ERROR_CODES,
+  EmptyBoardGenerator,
+  StandardBoardGenerator,
+  createMulberry32,
+  ...events,
 };

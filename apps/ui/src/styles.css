@@ -1,20 +1,209 @@
 :root {
-  font-family: system-ui, sans-serif;
-  background-color: #f5f5f5;
-  color: #202020;
+  font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #121019;
+  background-color: #f4f2ff;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(75, 91, 220, 0.08), transparent 50%),
+    radial-gradient(circle at 80% 10%, rgba(255, 105, 180, 0.08), transparent 45%), #f4f2ff;
 }
 
 .app-shell {
-  max-width: 960px;
-  margin: 4rem auto;
-  padding: 0 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.app-header {
   text-align: center;
 }
 
-.app-shell h1 {
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  margin: 0;
+  color: #6d6c80;
+}
+
+.app-header h1 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: clamp(2rem, 5vw, 3rem);
   color: #4b5bdc;
+}
+
+.lede {
+  margin: 0 auto;
+  max-width: 640px;
+  color: #4b495a;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 60px rgba(18, 16, 25, 0.08);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.title-screen {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.primary-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.9rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #4b5bdc, #a855f7);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 16px 35px rgba(75, 91, 220, 0.35);
+}
+
+.primary-button:hover,
+.end-turn-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(75, 91, 220, 0.45);
+}
+
+.status-panel__detail {
+  color: #4b495a;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.end-turn-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #4b5bdc, #a855f7);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 10px 25px rgba(75, 91, 220, 0.35);
+}
+
+.game-screen {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: stretch;
+}
+
+.board-panel {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 900px) {
+  .board-panel {
+    grid-column: span 2;
+  }
+}
+
+.player-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.player-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #e2e0f4;
+}
+
+.player-list__item--active {
+  border-color: #4b5bdc;
+  box-shadow: 0 10px 25px rgba(75, 91, 220, 0.25);
+}
+
+.player-list__color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.player-list__name {
+  font-weight: 600;
+}
+
+.player-list__id {
+  font-size: 0.8rem;
+  color: #6d6c80;
+}
+
+.board-panel h2 {
+  margin-bottom: 0.75rem;
+}
+
+.board-canvas {
+  width: 100%;
+  aspect-ratio: 6 / 8;
+  border-radius: 20px;
+  background: radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.4), rgba(180, 184, 255, 0.25)),
+    rgba(238, 240, 255, 0.8);
+  border: 1px solid rgba(75, 91, 220, 0.1);
+  padding: 1rem;
+}
+
+.board-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.board-edge {
+  stroke: rgba(75, 91, 220, 0.35);
+  stroke-width: 2;
+}
+
+.board-node circle {
+  stroke: white;
+  stroke-width: 3;
+}
+
+.board-node__strength {
+  fill: #121019;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.board-empty {
+  color: #6d6c80;
+  text-align: center;
 }

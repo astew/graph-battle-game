@@ -30,6 +30,7 @@ test('StandardBoardGenerator creates a connected 6x8 board with balanced ownersh
   const board = generator.generate({ players: STANDARD_PLAYERS, rng });
 
   assert.equal(board.nodes.size, 30);
+  assert.deepEqual(board.dimensions, { rows: 6, columns: 8 });
   const ownershipCounts = new Map();
   for (const node of board.nodes.values()) {
     assert.ok(node.position, 'node should have coordinates');
@@ -63,4 +64,21 @@ test('StandardBoardGenerator creates a connected 6x8 board with balanced ownersh
   }
 
   assert.equal(visited.size, board.nodes.size, 'Board must remain connected');
+});
+
+function positionsSignature(board) {
+  return Array.from(board.nodes.values())
+    .map((node) => `${node.position.row},${node.position.column}`)
+    .sort()
+    .join('|');
+}
+
+test('StandardBoardGenerator varies removed cells when rng seed changes', () => {
+  const generator = new StandardBoardGenerator();
+  const boardA = generator.generate({ players: STANDARD_PLAYERS, rng: createMulberry32(1) });
+  const boardARepeat = generator.generate({ players: STANDARD_PLAYERS, rng: createMulberry32(1) });
+  const boardB = generator.generate({ players: STANDARD_PLAYERS, rng: createMulberry32(2) });
+
+  assert.equal(positionsSignature(boardA), positionsSignature(boardARepeat));
+  assert.notEqual(positionsSignature(boardA), positionsSignature(boardB));
 });

@@ -6,6 +6,10 @@ const {
   createNodeState,
 } = require('../domain/entities');
 const { EventBus, EVENT_TYPES } = require('../events');
+const {
+  allocateReinforcements,
+  evaluateReinforcements,
+} = require('./reinforcements');
 
 const ERROR_CODES = Object.freeze({
   OUT_OF_TURN: 'core.error.outOfTurn',
@@ -21,9 +25,13 @@ class GameEngine {
     this.eventBus = eventBus;
     this.boardGenerator = boardGenerator;
     this.rng = rng;
-    this.state = createGameState({
+    const baseState = createGameState({
       board: this.boardGenerator.generate({ players, rng }),
       players,
+    });
+    this.state = Object.freeze({
+      ...baseState,
+      lastReinforcements: null,
     });
 
     this.eventBus.publish({
@@ -41,6 +49,7 @@ class GameEngine {
   }
 
   getView() {
+    const boardDimensions = this.state.board.dimensions;
     return {
       currentPlayerId: this.state.turn.activePlayerId,
       turnNumber: this.state.turn.number,
@@ -51,6 +60,14 @@ class GameEngine {
       edges: Array.isArray(this.state.board.edges)
         ? this.state.board.edges.map(([a, b]) => [a, b])
         : [],
+      grid: boardDimensions ? { ...boardDimensions } : undefined,
+      reinforcements: {
+        preview: evaluateReinforcements(
+          this.state.board,
+          this.state.turn.activePlayerId
+        ),
+        lastAwarded: this.state.lastReinforcements,
+      },
     };
   }
 
@@ -176,6 +193,14 @@ class GameEngine {
       payload: { turn: this.state.turn },
     });
 
+    const reinforcements = this.#awardReinforcements(action.playerId);
+    if (reinforcements) {
+      this.eventBus.publish({
+        type: EVENT_TYPES.REINFORCEMENTS_AWARDED,
+        payload: reinforcements,
+      });
+    }
+
     const nextTurn = advanceTurnState(this.state.turn, this.state.players);
     this.state = Object.freeze({
       ...this.state,
@@ -188,6 +213,49 @@ class GameEngine {
     });
 
     return { ok: true, state: this.state };
+  }
+
+  #awardReinforcements(playerId) {
+    const summary = allocateReinforcements({
+      board: this.state.board,
+      playerId,
+      random: () => this.#nextRandom(),
+    });
+
+    if (summary.total === 0 || summary.eligibleNodeIds.length === 0) {
+      this.state = Object.freeze({
+        ...this.state,
+        lastReinforcements: summary,
+      });
+      return summary;
+    }
+
+    const updatedNodes = new Map(this.state.board.nodes);
+    for (const allocation of summary.allocations) {
+      const currentNode = this.state.board.nodes.get(allocation.nodeId);
+      if (!currentNode) {
+        continue;
+      }
+
+      const updatedNode = createNodeState({
+        ...currentNode,
+        strength: currentNode.strength + allocation.amount,
+      });
+      updatedNodes.set(updatedNode.id, updatedNode);
+    }
+
+    const updatedBoard = Object.freeze({
+      ...this.state.board,
+      nodes: updatedNodes,
+    });
+
+    this.state = Object.freeze({
+      ...this.state,
+      board: updatedBoard,
+      lastReinforcements: summary,
+    });
+
+    return summary;
   }
 
   #invalidAttack(message) {

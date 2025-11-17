@@ -53,7 +53,28 @@ function createNodeState({ id, ownerId = null, strength = 0, position = undefine
   return Object.freeze({ id, ownerId, strength, position: normalizedPosition });
 }
 
-function createBoardState({ nodes = [], edges = [] }) {
+function normalizeDimensions(dimensions) {
+  if (dimensions == null) {
+    return undefined;
+  }
+
+  if (typeof dimensions !== 'object') {
+    throw new Error('dimensions must be an object when provided.');
+  }
+
+  const { rows, columns } = dimensions;
+  if (!Number.isInteger(rows) || rows <= 0) {
+    throw new Error('dimensions.rows must be a positive integer.');
+  }
+
+  if (!Number.isInteger(columns) || columns <= 0) {
+    throw new Error('dimensions.columns must be a positive integer.');
+  }
+
+  return Object.freeze({ rows, columns });
+}
+
+function createBoardState({ nodes = [], edges = [], dimensions = undefined }) {
   const nodeMap = new Map();
   for (const node of nodes) {
     if (nodeMap.has(node.id)) {
@@ -83,6 +104,7 @@ function createBoardState({ nodes = [], edges = [] }) {
     nodes: nodeMap,
     adjacency,
     edges: normalizedEdges,
+    dimensions: normalizeDimensions(dimensions),
   });
 }
 
@@ -151,6 +173,7 @@ module.exports = {
   createPlayer,
   createNodeState,
   createBoardState,
+  normalizeDimensions,
   createTurnState,
   createGameState,
   advanceTurnState,

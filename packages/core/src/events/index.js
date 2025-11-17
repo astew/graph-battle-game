@@ -3,6 +3,7 @@ const EVENT_TYPES = Object.freeze({
   TURN_STARTED: 'core.event.turnStarted',
   TURN_ENDED: 'core.event.turnEnded',
   ATTACK_RESOLVED: 'core.event.attackResolved',
+  REINFORCEMENTS_AWARDED: 'core.event.reinforcementsAwarded',
 });
 
 class EventBus {

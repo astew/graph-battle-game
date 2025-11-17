@@ -136,3 +136,64 @@ test('GameEngine rejects illegal attacks', () => {
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'core.error.invalidAttack');
 });
+
+test('GameEngine awards reinforcements after a player ends their turn', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 1 },
+      { id: 'b', ownerId: 'p1', strength: 1 },
+      { id: 'c', ownerId: 'p1', strength: 1 },
+      { id: 'd', ownerId: 'p2', strength: 2 },
+    ],
+    edges: [
+      ['a', 'b'],
+      ['b', 'c'],
+      ['c', 'd'],
+    ],
+  });
+  const eventBus = new EventBus();
+  const reinforcementEvents = [];
+  eventBus.subscribe(EVENT_TYPES.REINFORCEMENTS_AWARDED, (event) =>
+    reinforcementEvents.push(event.payload)
+  );
+
+  const engine = new GameEngine({
+    players: PLAYERS,
+    boardGenerator: new FixedBoardGenerator(board),
+    eventBus,
+    rng: createDeterministicRng([0.7]),
+  });
+
+  const result = engine.applyAction(createEndTurnAction('p1'));
+
+  assert.equal(result.ok, true);
+  const updatedNodes = engine.getState().board.nodes;
+  assert.equal(updatedNodes.get('c').strength, 4);
+  assert.equal(reinforcementEvents.length, 1);
+  assert.equal(reinforcementEvents[0].total, 3);
+  assert.deepEqual(reinforcementEvents[0].allocations, [
+    { nodeId: 'c', amount: 3 },
+  ]);
+  const view = engine.getView();
+  assert.equal(view.reinforcements.lastAwarded.total, 3);
+  assert.equal(view.reinforcements.preview.playerId, 'p2');
+  assert.equal(view.reinforcements.preview.total, 1);
+});
+
+test('GameEngine view exposes board dimensions when available', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 2, position: { row: 0, column: 0 } },
+      { id: 'b', ownerId: 'p2', strength: 2, position: { row: 0, column: 1 } },
+    ],
+    edges: [['a', 'b']],
+    dimensions: { rows: 6, columns: 8 },
+  });
+  const engine = new GameEngine({
+    players: PLAYERS,
+    boardGenerator: new FixedBoardGenerator(board),
+  });
+
+  const view = engine.getView();
+  assert.deepEqual(view.grid, { rows: 6, columns: 8 });
+});

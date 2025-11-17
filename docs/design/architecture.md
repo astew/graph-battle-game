@@ -52,6 +52,16 @@ All workspaces share TypeScript types generated from the core package. The UI ne
 - UI state includes `gameView` (derived from core), `pendingCommand`, `interactionMode`, and asynchronous metadata (loading, error).
 - Communication with core occurs through a web worker or local WASM-like call? For MVP, instantiate engine directly in browser thread, but run heavy simulations elsewhere.
 
+#### Standard Board Visualization
+- The standard rules always render the board as a rectangular, evenly spaced grid honoring the underlying 8-connected graph structure.
+- Each node appears as a circle positioned by its row/column coordinates. Non-existent nodes are omitted entirely so gaps remain visually obvious.
+- Node fill color communicates ownership, while an integer label centered inside the circle shows the node's current strength.
+- All existing edges are visible as straight-line connectors between nodes. These edges double as future animation anchors when showing attack resolution.
+
+#### Title Screen Requirements
+- Before entering a match the UI displays a title screen with the project branding and a "New Game" action.
+- The title screen creates a consistent entry point even while only a single game mode exists today, and it will grow to include tutorials and alternate rule sets later.
+
 ### 3.2 Module Breakdown
 1. **State Management (`apps/ui/src/state`)**
    - `gameSlice.ts`: stores `GameView` snapshot and dispatches thunks to invoke core engine.

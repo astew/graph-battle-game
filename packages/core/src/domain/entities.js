@@ -1,4 +1,4 @@
-const DEFAULT_PLAYER_COLORS = ['red', 'blue', 'green', 'yellow'];
+const DEFAULT_PLAYER_COLORS = ['red', 'green', 'yellow', 'blue', 'purple'];
 
 function createPlayer(config) {
   if (!config || typeof config.id !== 'string' || config.id.length === 0) {
@@ -14,7 +14,28 @@ function createPlayer(config) {
   });
 }
 
-function createNodeState({ id, ownerId = null, strength = 0 }) {
+function normalizePosition(position) {
+  if (position == null) {
+    return undefined;
+  }
+
+  if (typeof position !== 'object') {
+    throw new Error('position must be an object when provided.');
+  }
+
+  const { row, column } = position;
+  if (!Number.isInteger(row) || row < 0) {
+    throw new Error('position.row must be a non-negative integer.');
+  }
+
+  if (!Number.isInteger(column) || column < 0) {
+    throw new Error('position.column must be a non-negative integer.');
+  }
+
+  return Object.freeze({ row, column });
+}
+
+function createNodeState({ id, ownerId = null, strength = 0, position = undefined }) {
   if (typeof id !== 'string' || id.length === 0) {
     throw new Error('Node id must be a non-empty string.');
   }
@@ -27,7 +48,9 @@ function createNodeState({ id, ownerId = null, strength = 0 }) {
     throw new Error('strength must be a non-negative integer.');
   }
 
-  return Object.freeze({ id, ownerId, strength });
+  const normalizedPosition = normalizePosition(position);
+
+  return Object.freeze({ id, ownerId, strength, position: normalizedPosition });
 }
 
 function createBoardState({ nodes = [], edges = [] }) {
@@ -45,6 +68,7 @@ function createBoardState({ nodes = [], edges = [] }) {
     adjacency.set(nodeId, new Set());
   }
 
+  const normalizedEdges = [];
   for (const [a, b] of edges) {
     if (!nodeMap.has(a) || !nodeMap.has(b)) {
       throw new Error(`Edge references unknown node: ${a}, ${b}`);
@@ -52,11 +76,13 @@ function createBoardState({ nodes = [], edges = [] }) {
 
     adjacency.get(a).add(b);
     adjacency.get(b).add(a);
+    normalizedEdges.push([a, b]);
   }
 
   return Object.freeze({
     nodes: nodeMap,
     adjacency,
+    edges: normalizedEdges,
   });
 }
 
@@ -128,4 +154,5 @@ module.exports = {
   createTurnState,
   createGameState,
   advanceTurnState,
+  normalizePosition,
 };

@@ -28,10 +28,11 @@ This plan is organized as a dependency tree. Each node corresponds to a single P
    - Update events to capture detailed battle outcomes for UI visualization.
    - Add deterministic tests covering success/failure paths using seeded RNG.
 3. **P2.C UI Interaction Flow & Visual Feedback** *(depends on P2.B, P1.C)*
-   - Render actual board with ownership colors and strength numbers.
+   - Render the standard board as an 8-connected rectangular grid with visible node positions, ownership colors, strength labels, and the graph edges themselves.
    - Implement interaction wizard for attacks (select attacker, target) and reinforcement allocation overlay.
    - Provide animations (CSS transitions) to highlight attacks and reinforcement placements.
    - Ensure accessibility by adding keyboard shortcuts and ARIA labels.
+   - Introduce a title screen so the UI always boots into a menu before launching a new game session.
 4. **P2.D Basic Bot Policies** *(depends on P2.B)*
    - Implement deterministic-first and random policies using `BotPolicy` interface.
    - Add integration tests that pit bots against each other for a few turns to ensure engine contract stability.

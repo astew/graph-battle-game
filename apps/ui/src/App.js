@@ -117,6 +117,30 @@ function PlayerTrack({ players, nodes, currentPlayerId }) {
   return h('div', { className: 'player-track' }, badges);
 }
 
+function ReinforcementOverlay({ summary, playersById }) {
+  if (!summary || summary.total === 0) {
+    return null;
+  }
+
+  const owner = playersById.get(summary.playerId);
+  return h(
+    'div',
+    {
+      className: 'reinforcement-overlay',
+      role: 'status',
+      'aria-live': 'polite',
+    },
+    h('strong', null, `${owner?.name ?? summary.playerId} reinforced ${summary.total} nodes`),
+    h(
+      'ul',
+      null,
+      (summary.allocations ?? []).map((allocation) =>
+        h('li', { key: allocation.nodeId }, `${allocation.nodeId}: +${allocation.amount}`)
+      )
+    )
+  );
+}
+
 function BoardCanvas({
   nodes,
   edges,
@@ -425,6 +449,11 @@ function GameScreen({
         nodes: view.nodes,
         currentPlayerId: view.currentPlayerId,
       })),
+      h('h2', null, 'Battlefield'),
+      h(ReinforcementOverlay, {
+        summary: reinforcements?.lastAwarded,
+        playersById,
+      }),
       h(BoardCanvas, {
         nodes: view.nodes,
         edges: view.edges ?? [],
@@ -438,6 +467,19 @@ function GameScreen({
         highlightedEdges,
         currentPlayerId: view.currentPlayerId,
       })
+    ),
+    h(ActionPanel, {
+      interaction,
+      onCancel,
+      onEndTurn,
+      actionMessage,
+      reinforcementPreview: reinforcements?.preview,
+    }),
+    h(
+      'section',
+      { className: 'player-panel card' },
+      h('h2', null, 'Players'),
+      h(PlayerList, { players, currentPlayerId: view.currentPlayerId })
     ),
     h(ActionPanel, {
       interaction,
@@ -546,6 +588,32 @@ export default function App() {
 
   const actionableNodeIds = useMemo(() => {
     if (!view) {
+      return new Set();
+    }
+    return new Set(
+      view.nodes
+        .filter((node) => node.ownerId === view.currentPlayerId && node.strength >= 2)
+        .map((node) => node.id)
+    );
+  }, [view]);
+
+  const targetNodeIds = useMemo(() => {
+    if (!view || !interaction.attackerId) {
+      return new Set();
+    }
+    const neighbors = adjacencyMap.get(interaction.attackerId) ?? new Set();
+    const result = new Set();
+    neighbors.forEach((neighborId) => {
+      const neighbor = nodesById.get(neighborId);
+      if (neighbor && neighbor.ownerId && neighbor.ownerId !== view.currentPlayerId) {
+        result.add(neighborId);
+      }
+    });
+    return result;
+  }, [view, adjacencyMap, nodesById, interaction.attackerId]);
+
+  const highlightedEdges = useMemo(() => {
+    if (!interaction.attackerId || targetNodeIds.size === 0) {
       return new Set();
     }
     return new Set(

@@ -257,6 +257,10 @@ body {
   stroke-width: 4;
 }
 
+.board-node--selected {
+  transform: scale(1.08);
+}
+
 .board-node--selected circle {
   stroke: #fb8500;
   stroke-width: 5;
@@ -347,3 +351,21 @@ body {
   font-style: italic;
 }
 
+.reinforcement-overlay {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 10px 25px rgba(18, 16, 25, 0.15);
+  max-width: 220px;
+  font-size: 0.85rem;
+  color: #4b495a;
+  pointer-events: none;
+}
+
+.reinforcement-overlay ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1rem;
+}

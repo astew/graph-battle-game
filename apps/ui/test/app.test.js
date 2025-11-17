@@ -83,3 +83,27 @@ test('Event log records end turn events', () => {
   assert.ok(entries.length > 0);
   assert.match(markup, /ended turn/);
 });
+
+test('Event log records end turn events', () => {
+  const eventBus = new core.EventBus();
+  const players = [
+    { id: 'alpha', name: 'Alpha', color: '#f00' },
+    { id: 'beta', name: 'Beta', color: '#0f0' },
+  ];
+  const playersById = new Map(players.map((player) => [player.id, player]));
+  const entries = [];
+  eventBus.subscribe(core.EVENT_TYPES.TURN_ENDED, (event) => {
+    entries.push({
+      id: `log-${entries.length + 1}`,
+      label: formatEventLogEntry(event, playersById),
+    });
+  });
+
+  const engine = new core.GameEngine({ players, eventBus });
+  const { activePlayerId } = engine.getState().turn;
+  engine.applyAction(core.createEndTurnAction(activePlayerId));
+
+  const markup = renderToStaticMarkup(React.createElement(EventLog, { entries }));
+  assert.ok(entries.length > 0);
+  assert.match(markup, /ended turn/);
+});

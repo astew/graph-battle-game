@@ -2,6 +2,7 @@ export const EVENT_TYPES = Object.freeze({
   GAME_STARTED: 'core.event.gameStarted',
   TURN_STARTED: 'core.event.turnStarted',
   TURN_ENDED: 'core.event.turnEnded',
+  TURN_SKIPPED: 'core.event.turnSkipped',
   ATTACK_RESOLVED: 'core.event.attackResolved',
   REINFORCEMENTS_AWARDED: 'core.event.reinforcementsAwarded',
 });

@@ -17,7 +17,7 @@ test('App renders the title screen by default', () => {
   assert.match(markup, /New Game/);
 });
 
-test('GameScreen renders battlefield, player track, and log', () => {
+test('GameScreen renders battlefield controls and log toggle', () => {
   const view = {
     currentPlayerId: 'p1',
     turnNumber: 3,
@@ -43,23 +43,64 @@ test('GameScreen renders battlefield, player track, and log', () => {
       onEndTurn: noop,
       onNodeSelect: noop,
       interaction: { mode: 'idle', attackerId: null },
-      actionableNodeIds: new Set(),
       targetNodeIds: new Set(),
       eventLog: [],
       actionMessage: '',
       reinforcements: view.reinforcements,
       onCancel: noop,
       reinforcementHighlights: new Set(),
-      gridDimensions: { rows: 6, columns: 8 },
+      gridDimensions: { rows: 8, columns: 6 },
       highlightedEdges: new Set(),
     })
   );
 
-  assert.match(markup, /End Turn/);
   assert.match(markup, /Battlefield/);
   assert.match(markup, /player-track__badge/);
   assert.match(markup, /board-edge/);
+  assert.match(markup, /Show Log/);
+  assert.match(markup, /End Turn/);
+});
+
+test('GameScreen overlay provides a close control when open', () => {
+  const view = {
+    currentPlayerId: 'p1',
+    turnNumber: 1,
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 2, position: { row: 0, column: 0 } },
+      { id: 'b', ownerId: 'p2', strength: 1, position: { row: 0, column: 1 } },
+    ],
+    edges: [['a', 'b']],
+    reinforcements: {
+      preview: { total: 0, eligibleNodeIds: [] },
+      lastAwarded: null,
+    },
+  };
+  const players = [
+    { id: 'p1', name: 'Alpha', color: '#f00' },
+    { id: 'p2', name: 'Beta', color: '#0f0' },
+  ];
+  const noop = () => {};
+  const markup = renderToStaticMarkup(
+    React.createElement(GameScreen, {
+      view,
+      players,
+      onEndTurn: noop,
+      onNodeSelect: noop,
+      interaction: { mode: 'idle', attackerId: null },
+      targetNodeIds: new Set(),
+      eventLog: [],
+      actionMessage: '',
+      reinforcements: view.reinforcements,
+      onCancel: noop,
+      reinforcementHighlights: new Set(),
+      gridDimensions: { rows: 8, columns: 6 },
+      highlightedEdges: new Set(),
+      initialLogOpen: true,
+    })
+  );
+
   assert.match(markup, /Event Log/);
+  assert.match(markup, /Close Log/);
 });
 
 test('Event log records end turn events', () => {

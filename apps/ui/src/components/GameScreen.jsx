@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import BoardCanvas from './BoardCanvas.jsx';
 
 function PlayerTrack({ players, nodes, currentPlayerId }) {
@@ -52,20 +52,22 @@ export default function GameScreen({
   onEndTurn,
   onNodeSelect,
   interaction,
-  actionableNodeIds,
   targetNodeIds,
   eventLog,
   reinforcementHighlights,
   gridDimensions,
   highlightedEdges,
+  initialLogOpen = false,
 }) {
   const playersById = useMemo(() => new Map(players.map((player) => [player.id, player])), [
     players,
   ]);
+  const [logOpen, setLogOpen] = useState(initialLogOpen);
+  const toggleLog = () => setLogOpen((open) => !open);
 
   return (
     <div className="game-screen">
-      <section className="board-panel card">
+      <section className="board-panel card card--flush">
         <div className="board-panel__header">
           <h2>Battlefield</h2>
           <PlayerTrack players={players} nodes={view.nodes} currentPlayerId={view.currentPlayerId} />
@@ -77,7 +79,6 @@ export default function GameScreen({
           onNodeSelect={onNodeSelect}
           selectedAttackerId={interaction.attackerId}
           targetNodeIds={targetNodeIds}
-          actionableNodeIds={actionableNodeIds}
           reinforcementHighlights={reinforcementHighlights}
           gridDimensions={gridDimensions}
           highlightedEdges={highlightedEdges}
@@ -85,19 +86,44 @@ export default function GameScreen({
         />
       </section>
       <section className="turn-controls card">
-        <button
-          type="button"
-          className="end-turn-button"
-          onClick={onEndTurn}
-          aria-label="End turn (keyboard shortcut: E)"
-        >
-          End Turn
-        </button>
+        <div className="turn-controls__buttons">
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={toggleLog}
+            aria-pressed={logOpen}
+          >
+            Show Log
+          </button>
+          <button
+            type="button"
+            className="end-turn-button"
+            onClick={onEndTurn}
+            aria-label="End turn (keyboard shortcut: E)"
+            disabled={logOpen}
+          >
+            End Turn
+          </button>
+        </div>
       </section>
-      <section className="event-panel card">
-        <h2>Event Log</h2>
-        <EventLog entries={eventLog} />
-      </section>
+      {logOpen ? (
+        <div className="event-panel overlay" role="dialog" aria-modal="true">
+          <div className="event-panel__content card">
+            <div className="event-panel__header">
+              <h2>Event Log</h2>
+              <button
+                type="button"
+                className="ghost-button event-panel__close"
+                onClick={toggleLog}
+                aria-label="Close event log"
+              >
+                Close Log
+              </button>
+            </div>
+            <EventLog entries={eventLog} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

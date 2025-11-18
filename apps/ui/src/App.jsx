@@ -4,6 +4,8 @@ import GameScreen from './components/GameScreen.jsx';
 import TitleScreen from './components/TitleScreen.jsx';
 import { formatEventLogEntry, DEFAULT_PLAYERS } from './utils/gameHelpers.js';
 
+const STANDARD_BOARD_DIMENSIONS = Object.freeze({ rows: 8, columns: 6 });
+
 const {
   GameEngine,
   StandardBoardGenerator,
@@ -70,6 +72,7 @@ export default function App() {
         eventBus.subscribe(EVENT_TYPES.GAME_STARTED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_STARTED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_ENDED, appendEventLog),
+        eventBus.subscribe(EVENT_TYPES.TURN_SKIPPED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.ATTACK_RESOLVED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.REINFORCEMENTS_AWARDED, appendEventLog),
       ];
@@ -85,7 +88,7 @@ export default function App() {
     attachEventBus(eventBus);
     const engine = new GameEngine({
       players: DEFAULT_PLAYERS,
-      boardGenerator: new StandardBoardGenerator(),
+      boardGenerator: new StandardBoardGenerator(STANDARD_BOARD_DIMENSIONS),
       eventBus,
     });
     engineRef.current = engine;
@@ -116,17 +119,6 @@ export default function App() {
       return new Map();
     }
     return new Map(view.nodes.map((node) => [node.id, node]));
-  }, [view]);
-
-  const actionableNodeIds = useMemo(() => {
-    if (!view) {
-      return new Set();
-    }
-    return new Set(
-      view.nodes
-        .filter((node) => node.ownerId === view.currentPlayerId && node.strength >= 2)
-        .map((node) => node.id)
-    );
   }, [view]);
 
   const targetNodeIds = useMemo(() => {
@@ -249,33 +241,42 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [view]);
 
+  const header = (
+    <header className="app-header">
+      <p className="eyebrow">Prototype</p>
+      <h1>Graph Battle</h1>
+      <p className="lede">
+        A turn-based free-for-all played on a connected graph. This preview now renders the standard
+        board layout so we can iterate on combat UI.
+      </p>
+    </header>
+  );
+
+  const shellClassName = ['app-shell', `app-shell--${mode}`].join(' ');
+
   return (
-    <main className="app-shell">
-      <header className="app-header">
-        <p className="eyebrow">Prototype</p>
-        <h1>Graph Battle</h1>
-        <p className="lede">
-          A turn-based free-for-all played on a connected graph. This preview now renders the standard
-          board layout so we can iterate on combat UI.
-        </p>
-      </header>
-      {mode === 'menu' ? (
-        <TitleScreen onNewGame={startNewGame} />
-      ) : (
-        <GameScreen
-          view={view}
-          players={players}
-          onEndTurn={endTurn}
-          onNodeSelect={handleNodeSelect}
-          interaction={interaction}
-          actionableNodeIds={actionableNodeIds}
-          targetNodeIds={targetNodeIds}
-          eventLog={eventLog}
-          reinforcementHighlights={reinforcementHighlights}
-          gridDimensions={view?.grid}
-          highlightedEdges={highlightedEdges}
-        />
-      )}
+    <main className={shellClassName}>
+      <div className="app-stage">
+        {mode === 'menu' ? (
+          <>
+            {header}
+            <TitleScreen onNewGame={startNewGame} />
+          </>
+        ) : (
+          <GameScreen
+            view={view}
+            players={players}
+            onEndTurn={endTurn}
+            onNodeSelect={handleNodeSelect}
+            interaction={interaction}
+            targetNodeIds={targetNodeIds}
+            eventLog={eventLog}
+            reinforcementHighlights={reinforcementHighlights}
+            gridDimensions={view?.grid}
+            highlightedEdges={highlightedEdges}
+          />
+        )}
+      </div>
     </main>
   );
 }

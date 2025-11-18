@@ -1,7 +1,7 @@
 import { createBoardState, createNodeState } from '../domain/entities.js';
 
-const GRID_ROWS = 6;
-const GRID_COLUMNS = 8;
+const GRID_ROWS = 8;
+const GRID_COLUMNS = 6;
 const TARGET_NODE_COUNT = 30;
 const REQUIRED_PLAYER_COUNT = 5;
 const STRENGTH_PER_PLAYER = 12;

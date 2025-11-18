@@ -235,7 +235,7 @@ test('GameEngine view exposes board dimensions when available', () => {
       { id: 'b', ownerId: 'p2', strength: 2, position: { row: 0, column: 1 } },
     ],
     edges: [['a', 'b']],
-    dimensions: { rows: 6, columns: 8 },
+    dimensions: { rows: 8, columns: 6 },
   });
   const engine = new GameEngine({
     players: PLAYERS,
@@ -243,5 +243,31 @@ test('GameEngine view exposes board dimensions when available', () => {
   });
 
   const view = engine.getView();
-  assert.deepEqual(view.grid, { rows: 6, columns: 8 });
+  assert.deepEqual(view.grid, { rows: 8, columns: 6 });
+});
+
+test('GameEngine skips players without territory and emits TURN_SKIPPED', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 3 },
+      { id: 'b', ownerId: 'p3', strength: 2 },
+    ],
+    edges: [['a', 'b']],
+  });
+  const players = [{ id: 'p1' }, { id: 'p2' }, { id: 'p3' }];
+  const eventBus = new EventBus();
+  const skipped = [];
+  eventBus.subscribe(EVENT_TYPES.TURN_SKIPPED, (event) => skipped.push(event.payload.turn.activePlayerId));
+
+  const engine = new GameEngine({
+    players,
+    boardGenerator: new FixedBoardGenerator(board),
+    eventBus,
+  });
+
+  const result = engine.applyAction(createEndTurnAction('p1'));
+
+  assert.equal(result.ok, true);
+  assert.equal(engine.getState().turn.activePlayerId, 'p3');
+  assert.deepEqual(skipped, ['p2']);
 });

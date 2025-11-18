@@ -24,7 +24,6 @@ function BoardCanvas({
   onNodeSelect,
   selectedAttackerId,
   targetNodeIds,
-  actionableNodeIds,
   reinforcementHighlights,
   gridDimensions,
   highlightedEdges,
@@ -53,7 +52,6 @@ function BoardCanvas({
   const nodeLookup = new Map(coordinates.map((entry) => [entry.node.id, entry]));
   const nodesByPosition = new Map(coordinates.map((entry) => [entry.positionKey, entry]));
 
-  const actionableIds = actionableNodeIds ?? new Set();
   const targetIds = targetNodeIds ?? new Set();
   const reinforcementIds = reinforcementHighlights ?? new Set();
   const highlightedEdgeKeys = highlightedEdges ?? new Set();
@@ -119,9 +117,6 @@ function BoardCanvas({
     const owner = node.ownerId ? playersById.get(node.ownerId) : null;
     const fill = owner?.color ?? '#9CA3AF';
     const classes = ['board-node'];
-    if (actionableIds.has(node.id)) {
-      classes.push('board-node--actionable');
-    }
     if (node.id === selectedAttackerId) {
       classes.push('board-node--selected');
     }

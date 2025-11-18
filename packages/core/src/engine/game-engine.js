@@ -191,10 +191,17 @@ export class GameEngine {
       });
     }
 
-    const nextTurn = advanceTurnState(this.state.turn, this.state.players);
+    const { nextTurn, skipped } = this.#advanceToNextEligibleTurn(this.state.turn);
     this.state = Object.freeze({
       ...this.state,
       turn: nextTurn,
+    });
+
+    skipped.forEach((skippedTurn) => {
+      this.eventBus.publish({
+        type: EVENT_TYPES.TURN_SKIPPED,
+        payload: { turn: skippedTurn },
+      });
     });
 
     this.eventBus.publish({
@@ -284,6 +291,38 @@ export class GameEngine {
       defenderStrength,
       rounds,
     };
+  }
+
+  #advanceToNextEligibleTurn(currentTurn) {
+    if (!currentTurn || this.state.players.length === 0) {
+      return { nextTurn: currentTurn, skipped: [] };
+    }
+
+    let candidateTurn = advanceTurnState(currentTurn, this.state.players);
+    const skipped = [];
+    let remaining = this.state.players.length;
+
+    while (remaining > 0 && !this.#playerOwnsAnyNodes(candidateTurn.activePlayerId)) {
+      skipped.push(candidateTurn);
+      candidateTurn = advanceTurnState(candidateTurn, this.state.players);
+      remaining -= 1;
+    }
+
+    return { nextTurn: candidateTurn, skipped };
+  }
+
+  #playerOwnsAnyNodes(playerId) {
+    if (typeof playerId !== 'string' || playerId.length === 0) {
+      return false;
+    }
+
+    for (const node of this.state.board.nodes.values()) {
+      if (node.ownerId === playerId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   #nextRandom() {

@@ -25,13 +25,13 @@ const STANDARD_PLAYERS = [
   { id: 'purple' },
 ];
 
-test('StandardBoardGenerator creates a connected 6x8 board with balanced ownership', () => {
+test('StandardBoardGenerator creates a connected 8x6 board with balanced ownership', () => {
   const generator = new StandardBoardGenerator();
   const rng = createMulberry32(123);
   const board = generator.generate({ players: STANDARD_PLAYERS, rng });
 
   assert.equal(board.nodes.size, 30);
-  assert.deepEqual(board.dimensions, { rows: 6, columns: 8 });
+  assert.deepEqual(board.dimensions, { rows: 8, columns: 6 });
   const ownershipCounts = new Map();
   for (const node of board.nodes.values()) {
     assert.ok(node.position, 'node should have coordinates');

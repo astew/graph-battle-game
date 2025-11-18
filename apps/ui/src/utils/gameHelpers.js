@@ -4,9 +4,9 @@ const { EVENT_TYPES } = core;
 
 const DEFAULT_PLAYERS = [
   { id: 'player-red', name: 'Red', color: '#f94144' },
-  { id: 'player-blue', name: 'Blue', color: '#277da1' },
+  { id: 'player-blue', name: 'Blue', color: '#525ea3ff' },
   { id: 'player-yellow', name: 'Yellow', color: '#ceb421ff' },
-  { id: 'player-green', name: 'Green', color: '#43aa8b' },
+  { id: 'player-green', name: 'Green', color: '#189934ff' },
   { id: 'player-purple', name: 'Purple', color: '#9b5de5' },
 ];
 
@@ -30,6 +30,8 @@ function formatEventLogEntry(event, playersById) {
       return `${resolvePlayer(event.payload.turn.activePlayerId)} began turn ${event.payload.turn.number}.`;
     case EVENT_TYPES.TURN_ENDED:
       return `${resolvePlayer(event.payload.turn.activePlayerId)} ended turn ${event.payload.turn.number}.`;
+    case EVENT_TYPES.TURN_SKIPPED:
+      return `${resolvePlayer(event.payload.turn.activePlayerId)} was skipped (no territory remaining).`;
     case EVENT_TYPES.ATTACK_RESOLVED:
       return `${resolvePlayer(event.payload.playerId)} attacked ${event.payload.defenderNodeId} from ${event.payload.attackerNodeId} (${event.payload.success ? 'victory' : 'defeat'}).`;
     case EVENT_TYPES.REINFORCEMENTS_AWARDED:

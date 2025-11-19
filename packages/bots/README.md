@@ -1,6 +1,6 @@
 # @graph-battle/bots
 
-This package will host a catalog of AI player policies for Graph Battle. Policies wrap the core engine and decide what moves a computer-controlled player should make.
+This package hosts the AI player policies for Graph Battle. Policies wrap the core engine and decide what moves a computer-controlled player should make.
 
 ## Scripts
 
@@ -9,4 +9,11 @@ This package will host a catalog of AI player policies for Graph Battle. Policie
 
 ## Status
 
-Only a placeholder "do nothing" bot exists today. Future work will add real policies and supporting utilities.
+Available utilities include:
+
+- `createDeterministicBot` – selects the lexicographically first legal attack each turn.
+- `createRandomBot` – chooses random legal attacks using an injectable RNG.
+- `enumerateLegalAttacks` – helper that derives legal attacker/defender pairs from a `GameView` snapshot.
+- `executeBotTurn` – repeatedly asks the bot for attacks before issuing an end-turn action.
+
+These helpers make it possible to plug bots into the simulator and UI without reimplementing the core combat rules.

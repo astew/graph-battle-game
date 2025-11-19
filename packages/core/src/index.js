@@ -7,6 +7,7 @@ import { StandardBoardGenerator } from './board/standard-board-generator.js';
 import { buildAdjacencyMap } from './board/graph-utils.js';
 import { createMulberry32 } from './rng/mulberry32.js';
 import * as events from './events/index.js';
+import { createStandardGame } from './standard-game.js';
 
 export * from './domain/entities.js';
 export * from './actions.js';
@@ -17,6 +18,7 @@ export { EmptyBoardGenerator } from './board/empty-board-generator.js';
 export { StandardBoardGenerator } from './board/standard-board-generator.js';
 export { buildAdjacencyMap } from './board/graph-utils.js';
 export { createMulberry32 } from './rng/mulberry32.js';
+export { createStandardGame } from './standard-game.js';
 
 const coreApi = {
   ...domain,
@@ -28,6 +30,7 @@ const coreApi = {
   StandardBoardGenerator,
   buildAdjacencyMap,
   createMulberry32,
+  createStandardGame,
   ...events,
 };
 

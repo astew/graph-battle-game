@@ -79,6 +79,30 @@ test('allocateReinforcements distributes remainder randomly but deterministicall
   assert.equal(allocationMap.get('c'), 1);
 });
 
+test('evaluateReinforcements uses rng to select among tied largest territories', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 1 },
+      { id: 'b', ownerId: 'p1', strength: 1 },
+      { id: 'c', ownerId: 'p1', strength: 1 },
+      { id: 'd', ownerId: 'p1', strength: 1 },
+      { id: 'e', ownerId: 'p2', strength: 1 },
+    ],
+    edges: [
+      ['a', 'b'],
+      ['c', 'd'],
+      ['b', 'e'],
+      ['c', 'e'],
+    ],
+  });
+
+  const first = evaluateReinforcements(board, 'p1', { random: deterministicRandomSequence([0.1]) });
+  const second = evaluateReinforcements(board, 'p1', { random: deterministicRandomSequence([0.9]) });
+
+  assert.deepEqual(new Set(first.territoryNodeIds), new Set(['a', 'b']));
+  assert.deepEqual(new Set(second.territoryNodeIds), new Set(['c', 'd']));
+});
+
 test('allocateReinforcements handles players without eligible nodes', () => {
   const board = createBoardState({
     nodes: [

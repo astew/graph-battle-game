@@ -89,6 +89,39 @@ test('GameEngine resolves successful attacks and emits events', () => {
   assert.equal(attackEvents[0].success, true);
 });
 
+test('GameEngine emits ATTACK_ITERATION events for each combat round', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 3 },
+      { id: 'b', ownerId: 'p2', strength: 2 },
+    ],
+    edges: [
+      ['a', 'b'],
+    ],
+  });
+  const eventBus = new EventBus();
+  const iterations = [];
+  const resolved = [];
+  eventBus.subscribe(EVENT_TYPES.ATTACK_ITERATION, (event) => iterations.push(event.payload));
+  eventBus.subscribe(EVENT_TYPES.ATTACK_RESOLVED, (event) => resolved.push(event.payload));
+
+  const engine = new GameEngine({
+    players: PLAYERS,
+    boardGenerator: new FixedBoardGenerator(board),
+    eventBus,
+    rng: createDeterministicRng([0.9, 0.1]),
+  });
+
+  const result = engine.applyAction(
+    createAttackAction({ playerId: 'p1', attackerId: 'a', defenderId: 'b' })
+  );
+
+  assert.equal(result.ok, true);
+  assert.equal(iterations.length, 3);
+  assert.deepEqual(iterations.map((entry) => entry.winner), ['attacker', 'defender', 'attacker']);
+  assert.equal(resolved[0].rounds.length, iterations.length);
+});
+
 test('GameEngine resolves failed attacks with deterministic rng', () => {
   const board = createBoardState({
     nodes: [
@@ -226,6 +259,42 @@ test('GameEngine awards reinforcements after a player ends their turn', () => {
   assert.equal(view.reinforcements.lastAwarded.total, 3);
   assert.equal(view.reinforcements.preview.playerId, 'p2');
   assert.equal(view.reinforcements.preview.total, 1);
+});
+
+test('GameEngine emits reinforcement steps and uses rng to break ties', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 1 },
+      { id: 'b', ownerId: 'p1', strength: 1 },
+      { id: 'c', ownerId: 'p2', strength: 1 },
+      { id: 'd', ownerId: 'p2', strength: 1 },
+    ],
+    edges: [
+      ['a', 'c'],
+      ['b', 'd'],
+    ],
+  });
+  const eventBus = new EventBus();
+  const steps = [];
+  eventBus.subscribe(EVENT_TYPES.REINFORCEMENT_STEP, (event) => steps.push(event.payload));
+
+  const engine = new GameEngine({
+    players: PLAYERS,
+    boardGenerator: new FixedBoardGenerator(board),
+    eventBus,
+    rng: createDeterministicRng([0.8]),
+  });
+
+  const result = engine.applyAction(createEndTurnAction('p1'));
+
+  assert.equal(result.ok, true);
+  assert.equal(steps.length, 1);
+  assert.equal(steps[0].nodeId, 'b');
+  const lastSummary = engine.getState().lastReinforcements;
+  assert.equal(lastSummary.total, 1);
+  assert.deepEqual(new Set(lastSummary.territoryNodeIds), new Set(['b']));
+  const updatedNodes = engine.getState().board.nodes;
+  assert.equal(updatedNodes.get('b').strength, 2);
 });
 
 test('GameEngine view exposes board dimensions when available', () => {

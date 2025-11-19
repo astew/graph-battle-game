@@ -18,14 +18,26 @@ export const ERROR_CODES = Object.freeze({
 });
 
 export class GameEngine {
-  constructor({ players, boardGenerator = new EmptyBoardGenerator(), eventBus = new EventBus(), rng } = {}) {
+  constructor({
+    players,
+    boardGenerator = new EmptyBoardGenerator(),
+    eventBus = new EventBus(),
+    rng,
+    attackWinProbability = 0.5,
+  } = {}) {
     if (!Array.isArray(players) || players.length === 0) {
       throw new Error('GameEngine requires at least one player.');
+    }
+
+    if (typeof attackWinProbability !== 'number' || attackWinProbability <= 0 || attackWinProbability >= 1) {
+      throw new Error('attackWinProbability must be a number between 0 and 1.');
     }
 
     this.eventBus = eventBus;
     this.boardGenerator = boardGenerator;
     this.rng = rng;
+    this.attackWinProbability = attackWinProbability;
+    this.reinforcementRandomState = new Map();
     const baseState = createGameState({
       board: this.boardGenerator.generate({ players, rng }),
       players,
@@ -65,7 +77,8 @@ export class GameEngine {
       reinforcements: {
         preview: evaluateReinforcements(
           this.state.board,
-          this.state.turn.activePlayerId
+          this.state.turn.activePlayerId,
+          { random: () => this.#createReinforcementRng(this.state.turn.activePlayerId).next() }
         ),
         lastAwarded: this.state.lastReinforcements,
       },
@@ -216,7 +229,7 @@ export class GameEngine {
     const summary = allocateReinforcements({
       board: this.state.board,
       playerId,
-      random: () => this.#nextRandom(),
+      random: () => this.#createReinforcementRng(playerId).next(),
     });
 
     if (summary.total === 0 || summary.eligibleNodeIds.length === 0) {
@@ -228,10 +241,26 @@ export class GameEngine {
     }
 
     const updatedNodes = new Map(this.state.board.nodes);
+    let stepIndex = 0;
+    const totalSteps = summary.allocations.reduce((sum, allocation) => sum + allocation.amount, 0);
     for (const allocation of summary.allocations) {
       const currentNode = this.state.board.nodes.get(allocation.nodeId);
       if (!currentNode) {
         continue;
+      }
+
+      for (let i = 0; i < allocation.amount; i += 1) {
+        this.eventBus.publish({
+          type: EVENT_TYPES.REINFORCEMENT_STEP,
+          payload: {
+            playerId,
+            nodeId: allocation.nodeId,
+            amount: 1,
+            step: stepIndex,
+            totalSteps,
+          },
+        });
+        stepIndex += 1;
       }
 
       const updatedNode = createNodeState({
@@ -273,7 +302,7 @@ export class GameEngine {
 
     while (attackerStrength >= 2 && defenderStrength > 0) {
       const roll = this.#nextRandom();
-      const attackerWins = roll >= 0.5;
+      const attackerWins = roll >= 1 - this.attackWinProbability;
       if (attackerWins) {
         defenderStrength -= 1;
         rounds.push({ round, winner: 'attacker', roll });
@@ -281,6 +310,18 @@ export class GameEngine {
         attackerStrength -= 1;
         rounds.push({ round, winner: 'defender', roll });
       }
+
+      this.eventBus.publish({
+        type: EVENT_TYPES.ATTACK_ITERATION,
+        payload: {
+          attackerNodeId: attackerNode.id,
+          defenderNodeId: defenderNode.id,
+          winner: attackerWins ? 'attacker' : 'defender',
+          attackerStrength,
+          defenderStrength,
+          index: rounds.length - 1,
+        },
+      });
 
       round += 1;
     }
@@ -323,6 +364,37 @@ export class GameEngine {
     }
 
     return false;
+  }
+
+  #createReinforcementRng(playerId) {
+    const cache = this.#getReinforcementRandomCache(playerId);
+    cache.index = 0;
+
+    return {
+      next: () => {
+        if (cache.index < cache.values.length) {
+          const value = cache.values[cache.index];
+          cache.index += 1;
+          return value;
+        }
+
+        const value = this.#nextRandom();
+        cache.values.push(value);
+        cache.index += 1;
+        return value;
+      },
+    };
+  }
+
+  #getReinforcementRandomCache(playerId) {
+    const existing = this.reinforcementRandomState.get(playerId);
+    if (existing && existing.turn === this.state.turn.number) {
+      return existing;
+    }
+
+    const cache = { turn: this.state.turn.number, values: [], index: 0 };
+    this.reinforcementRandomState.set(playerId, cache);
+    return cache;
   }
 
   #nextRandom() {

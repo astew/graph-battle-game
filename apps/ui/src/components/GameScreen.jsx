@@ -57,6 +57,10 @@ export default function GameScreen({
   reinforcementHighlights,
   gridDimensions,
   highlightedEdges,
+  activeAnimation,
+  interactionLocked,
+  animationSpeed,
+  onAnimationSpeedChange,
   initialLogOpen = false,
 }) {
   const playersById = useMemo(() => new Map(players.map((player) => [player.id, player])), [
@@ -65,12 +69,46 @@ export default function GameScreen({
   const [logOpen, setLogOpen] = useState(initialLogOpen);
   const toggleLog = () => setLogOpen((open) => !open);
 
+  const animationMessage = useMemo(() => {
+    if (activeAnimation?.type === 'attack-iteration') {
+      return `Resolving attack between ${activeAnimation.attackerNodeId} and ${activeAnimation.defenderNodeId} (${activeAnimation.winner} won iteration ${
+        (activeAnimation.index ?? 0) + 1
+      }).`;
+    }
+    if (activeAnimation?.type === 'reinforcement-step') {
+      return `Applying reinforcement ${
+        (activeAnimation.step ?? 0) + 1
+      } of ${activeAnimation.totalSteps} to ${activeAnimation.nodeId}.`;
+    }
+    if (interactionLocked) {
+      return 'Animations in progress…';
+    }
+    return '';
+  }, [activeAnimation, interactionLocked]);
+
   return (
     <div className="game-screen">
       <section className="board-panel card card--flush">
         <div className="board-panel__header">
           <h2>Battlefield</h2>
           <PlayerTrack players={players} nodes={view.nodes} currentPlayerId={view.currentPlayerId} />
+        </div>
+        <div className="board-panel__status" aria-live="polite">
+          <div className="animation-status" data-locked={interactionLocked}>
+            <span className="animation-status__dot" aria-hidden="true" />
+            <span>{animationMessage || 'Ready for orders.'}</span>
+          </div>
+          <label className="animation-speed" htmlFor="animation-speed">
+            <span className="animation-speed__label">Animation speed</span>
+            <select
+              id="animation-speed"
+              value={animationSpeed}
+              onChange={(event) => onAnimationSpeedChange?.(event.target.value)}
+            >
+              <option value="normal">Normal</option>
+              <option value="fast">Fast</option>
+            </select>
+          </label>
         </div>
         <BoardCanvas
           nodes={view.nodes}
@@ -83,6 +121,7 @@ export default function GameScreen({
           gridDimensions={gridDimensions}
           highlightedEdges={highlightedEdges}
           currentPlayerId={view.currentPlayerId}
+          activeAnimation={activeAnimation}
         />
       </section>
       <section className="turn-controls card">
@@ -100,7 +139,7 @@ export default function GameScreen({
             className="end-turn-button"
             onClick={onEndTurn}
             aria-label="End turn (keyboard shortcut: E)"
-            disabled={logOpen}
+            disabled={logOpen || interactionLocked}
           >
             End Turn
           </button>

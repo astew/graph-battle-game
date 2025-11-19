@@ -4,6 +4,21 @@ const GRID_SPACING = 96;
 const NODE_RADIUS = 24;
 const SLOT_RADIUS = NODE_RADIUS + 10;
 
+function formatClassSegment(value) {
+  if (!value && value !== 0) {
+    return 'none';
+  }
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, '-');
+}
+
+function getStrengthTier(strength) {
+  if (strength <= 0) return 'strength-0';
+  if (strength === 1) return 'strength-1';
+  if (strength <= 8) return 'strength-2-8';
+  if (strength <= 20) return 'strength-9-20';
+  return 'strength-21-plus';
+}
+
 function createEdgeKey(a, b) {
   if (!a || !b) {
     return '';
@@ -28,6 +43,7 @@ function BoardCanvas({
   gridDimensions,
   highlightedEdges,
   currentPlayerId,
+  activeAnimation,
 }) {
   if (!nodes || nodes.length === 0) {
     return <div className="board-empty">Board unavailable</div>;
@@ -55,6 +71,18 @@ function BoardCanvas({
   const targetIds = targetNodeIds ?? new Set();
   const reinforcementIds = reinforcementHighlights ?? new Set();
   const highlightedEdgeKeys = highlightedEdges ?? new Set();
+  const activeEdgeKey =
+    activeAnimation?.type === 'attack-iteration'
+      ? createEdgeKey(activeAnimation.attackerNodeId, activeAnimation.defenderNodeId)
+      : null;
+
+  const boardClasses = ['board', 'board-canvas'];
+  if (currentPlayerId) {
+    boardClasses.push(`board--active-${formatClassSegment(currentPlayerId)}`);
+  }
+  if (activeAnimation) {
+    boardClasses.push('board--animating');
+  }
 
   const slotElements = [];
   for (let row = 0; row < totalRows; row += 1) {
@@ -93,6 +121,9 @@ function BoardCanvas({
       if (highlightedEdgeKeys.has(edgeKey)) {
         classes.push('board-edge--highlighted');
       }
+      if (activeEdgeKey && edgeKey === activeEdgeKey) {
+        classes.push('board-edge--animating');
+      }
 
       return (
         <line
@@ -113,10 +144,16 @@ function BoardCanvas({
     }
   };
 
-  const nodeElements = coordinates.map(({ node, cx, cy }) => {
+  const nodeElements = coordinates.map(({ node, cx, cy, row, column }) => {
     const owner = node.ownerId ? playersById.get(node.ownerId) : null;
     const fill = owner?.color ?? '#9CA3AF';
-    const classes = ['board-node'];
+    const classes = [
+      'board-node',
+      `node--owner-${formatClassSegment(node.ownerId ?? 'unclaimed')}`,
+      `node--row-${formatClassSegment(row)}`,
+      `node--col-${formatClassSegment(column)}`,
+      `node--${getStrengthTier(node.strength)}`,
+    ];
     if (node.id === selectedAttackerId) {
       classes.push('board-node--selected');
     }
@@ -128,6 +165,15 @@ function BoardCanvas({
     }
     if (node.ownerId && node.ownerId === currentPlayerId) {
       classes.push('board-node--active-owner');
+    }
+    if (activeAnimation?.type === 'attack-iteration' && node.id === activeAnimation.attackerNodeId) {
+      classes.push('board-node--attack-source');
+    }
+    if (activeAnimation?.type === 'attack-iteration' && node.id === activeAnimation.defenderNodeId) {
+      classes.push('board-node--attack-target');
+    }
+    if (activeAnimation?.type === 'reinforcement-step' && node.id === activeAnimation.nodeId) {
+      classes.push('board-node--reinforcing');
     }
     const ariaLabel = describeNode(node, playersById);
     const transformParts = [`translate(${cx} ${cy})`];
@@ -163,7 +209,7 @@ function BoardCanvas({
   });
 
   return (
-    <div className="board-canvas" role="application" aria-label="Battlefield">
+    <div className={boardClasses.join(' ')} role="application" aria-label="Battlefield">
       <svg className="board-svg" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
         <g className="board-slots">{slotElements}</g>
         <g className="board-edges">{edgeElements}</g>

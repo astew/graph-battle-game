@@ -88,15 +88,43 @@ Workspaces may share TypeScript types; currently `packages/core` is implemented 
 - When sufficient context exists (attacker + target) the UI builds a `GameCommand` and dispatches `executeCommand` thunk.
 - Thunk calls `engineService.execute(command)` which forwards to `GameController` and resolves to new `GameView` + emitted events.
 - Redux updates triggers re-render. Event log component displays chronological events.
-- Reinforcement allocation uses wizard-like overlay ensuring legal distribution by asking core for allowed nodes and validating totals before dispatch.
+- Reinforcement allocation uses an allocation flow overlay ensuring legal distribution by asking core for allowed nodes and validating totals before dispatch.
 
-### 3.4 Performance & UX Considerations
+### 3.4 GameController Contract (for future worker migration)
+- `GameController` encapsulates an engine instance, event bus, and optional worker transport so UI components can interact with a stable façade regardless of where the rules engine runs.
+- Suggested shape:
+
+```
+type GameController = {
+  getView(): GameView;
+  execute(command: GameCommand): Result<GameView>;
+  subscribe: EventBus['subscribe'];
+  dispose(): void;
+};
+
+function createGameController({ players, board, rng, transport }): GameController {
+  const engine =
+    transport?.type === 'worker'
+      ? createWorkerBridge(transport)
+      : new GameEngine({ players, boardGenerator: board, rng });
+  const eventBus = transport?.eventBus ?? new EventBus();
+  return {
+    getView: () => engine.getView(),
+    execute: (command) => engine.applyAction(command),
+    subscribe: (eventType, handler) => eventBus.subscribe(eventType, handler),
+    dispose: () => transport?.dispose?.(),
+  };
+}
+```
+- Consumers should treat `GameController` as the single entry point for issuing commands and listening for `ATTACK_ITERATION` / `REINFORCEMENT_STEP` events so the UI animation flow remains consistent when the engine moves off the main thread.
+
+### 3.5 Performance & UX Considerations
 - Board re-render optimized through memoization and keyed components (node id as key).
 - Commands executed synchronously; to avoid blocking, thunks wrap engine calls in `setTimeout(0)` when simulating long operations.
 - Provide optimistic UI for simple commands but fall back to authoritative state from core after command resolves.
 - Keyboard accessibility: arrow keys to navigate selection, Enter to confirm actions.
 
-### 3.5 Avoided Patterns
+### 3.6 Avoided Patterns
 - Avoid storing derived data (e.g., adjacency lists) in Redux; compute via selectors from `GameView` to prevent desynchronization.
 - Avoid directly mutating engine internals from components; always go through controller façade.
 
@@ -185,7 +213,7 @@ UI Store -> React Components: re-render
 ## 8. Trade-offs & Open Questions
 - **UI Threading**: Running engine on main thread simplifies integration but may block on long simulations. Mitigation: wrap simulator in worker threads; consider migrating UI engine calls to worker once profiling indicates need.
 - **Immutability vs Performance**: Copying board state each command may cost memory. Optimize later using structural sharing (Immer) if profiling demands it.
-- **Reinforcement Distribution**: Core enforces fairness; UI wizard ensures compliance even if user interaction fails mid-allocation by allowing cancellation and restart.
+- **Reinforcement Distribution**: Core enforces fairness; the UI allocation flow ensures compliance even if user interaction fails mid-allocation by allowing cancellation and restart.
 - **Event Bus Implementation**: Simple synchronous pub/sub adequate now; asynchronous queue may be needed for analytics once volume grows.
 
 ## 9. Future Extensions

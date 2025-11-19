@@ -10,7 +10,7 @@ Graph Battle is composed of four collaborating packages plus shared documentatio
 | `packages/bots` | Policy library | Provides reusable policies that choose legal actions for non-human players. |
 | `packages/simulator` | Experiment harness | Orchestrates large batches of games, capturing results for statistical analysis. |
 
-All workspaces share TypeScript types generated from the core package. The UI never mutates game state directly; it dispatches high-level intents through a controller that delegates to `core`, receives immutable snapshots, and then re-renders.
+Workspaces may share TypeScript types; currently `packages/core` is implemented in JavaScript with the public API surfaced through runtime exports. Publishing TypeScript declaration files (or migrating the package to TypeScript) is a planned improvement. The UI never mutates game state directly; it dispatches high-level intents to the engine or controller and re-renders from the resulting snapshots.
 
 ## 2. Core Package Design
 ### 2.1 Architectural Layers
@@ -21,6 +21,8 @@ All workspaces share TypeScript types generated from the core package. The UI ne
 2. **Rule Services Layer**
    - `BoardGenerator` strategy interface with `StandardBoardGenerator` implementation.
    - `ReinforcementService`, `AttackResolver`, `TurnManager`, each exposing stateless functions that accept and return domain structures.
+   - `RulesetFactory` or `GameProfile` — a lightweight factory that wraps `GameEngine` construction for standard game instances (size / starting nodes / reinforcements / attack probability) while keeping the engine itself agnostic of high-level parameterization.
+      - Reinforcement tie-breaker: when multiple territories tie for the largest size, the standard rules choose one at random. This avoids deterministic biases in allocation order and should be reflected in `ReinforcementService` behavior.
 3. **Game Orchestrator**
    - `GameEngine` class coordinates phases of the game, exposes a thin API (`applyAction`, `advanceTurn`, `getView`).
    - Emits domain events (`GameEvent`) to observers (UI, bots, simulator) through an `EventBus` interface using publish/subscribe.
@@ -32,6 +34,7 @@ All workspaces share TypeScript types generated from the core package. The UI ne
 - `engine/game-engine.ts`: orchestrator, ensures actions legal before calling rule services.
 - `engine/game-controller.ts`: higher-level façade for consumers, bundling engine + event bus.
 - `events.ts`: `GameEvent` union covering `TurnStarted`, `AttackResolved`, `ReinforcementsAwarded`, etc.
+   - `events.ts`: `GameEvent` union covering `TurnStarted`, `TURN_SKIPPED`, `ATTACK_ITERATION`, `AttackResolved`, `REINFORCEMENTS_AWARDED`, and optionally `REINFORCEMENT_STEP` used by UI for animation.
 - `view/selectors.ts`: selectors that derive read-optimized views for UI (e.g., `BoardView`, `PlayerSummary`).
 
 ### 2.3 Key Patterns & Guidelines
@@ -48,7 +51,7 @@ All workspaces share TypeScript types generated from the core package. The UI ne
 
 ## 3. UI Application Design
 ### 3.1 Conceptual Model
-- React + Vite front-end, using Redux Toolkit or Zustand for state management (choose minimal global store; default: Redux Toolkit because of tooling support).
+- React + Vite front-end. For the MVP prefer local component state and explicit event subscriptions; adopt a small global store (Redux Toolkit or Zustand) only when shared state and tooling justify it. Keep the engine access strategy simple: the UI can instantiate `GameEngine` directly for the MVP; a small `GameController` façade or `engineService` wrapper is optional and recommended only if moving the engine to a worker or adding advanced orchestration.
 - UI state includes `gameView` (derived from core), `pendingCommand`, `interactionMode`, and asynchronous metadata (loading, error).
 - Communication with core occurs through a web worker or local WASM-like call? For MVP, instantiate engine directly in browser thread, but run heavy simulations elsewhere.
 
@@ -64,14 +67,16 @@ All workspaces share TypeScript types generated from the core package. The UI ne
 
 ### 3.2 Module Breakdown
 1. **State Management (`apps/ui/src/state`)**
-   - `gameSlice.ts`: stores `GameView` snapshot and dispatches thunks to invoke core engine.
-   - `interactionSlice.ts`: manages UI-specific modes (selected node, hovered attack target, reinforcement allocation state).
-   - `engineService.ts`: wrapper that instantiates `GameController` from core and exposes async-friendly methods returning promises (future-proofing for worker usage).
+   - Prefer `gameView` as a single source of truth derived from the engine and light local interaction state for selection and overlays.
+   - If a central store is needed, add `gameSlice` + `interactionSlice` via Redux Toolkit incrementally; do not mandate this in the architecture until use-cases justify the added complexity.
+   - `GameController` / `engineService` are optional facades for future worker migration; do not require them in the MVP.
 2. **Components (`apps/ui/src/components`)**
    - `GameCanvas`: renders board grid; uses memoized selectors for nodes, edges.
    - `NodeCell`: clickable element, dispatches actions based on current interaction state.
    - `Sidebar`: lists players, turn order, reinforcement status, command log.
    - `ActionPanel`: context-sensitive instructions (e.g., "Select attacker", "Confirm reinforcements").
+
+   Refer to `docs/ui-guidelines.md` for detailed UI rules, animation timing, and recommended DOM class semantics. This helps separate UX concerns from core mechanics and keeps the architecture doc focused on high-level contracts.
 3. **Hooks & Utilities**
    - `useGameController` to access engine service.
    - `useInteractionFlow` orchestrates multi-step actions, ensures UI doesn't block main thread—heavy calculations are done in core before UI updates.

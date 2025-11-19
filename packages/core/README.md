@@ -9,4 +9,4 @@ The core package defines the platform-agnostic rules and data models for Graph B
 
 ## Status
 
-This package currently contains stub definitions. Real gameplay logic will be added in a future iteration.
+The core package now exposes a playable engine with the standard board generator, a configurable `createStandardGame` factory, deterministic RNG helpers, and event emissions (`ATTACK_ITERATION`, `REINFORCEMENT_STEP`, `ATTACK_RESOLVED`, `REINFORCEMENTS_AWARDED`) suitable for UI animation or simulation logging.

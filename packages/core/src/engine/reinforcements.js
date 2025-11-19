@@ -12,9 +12,10 @@ function assertPlayerId(playerId) {
   }
 }
 
-function findLargestTerritory(board, playerId) {
+function findLargestTerritory(board, playerId, randomFn = Math.random) {
   const visited = new Set();
-  let largest = new Set();
+  const territories = [];
+  let largestSize = 0;
 
   for (const node of board.nodes.values()) {
     if (node.ownerId !== playerId || visited.has(node.id)) {
@@ -44,12 +45,21 @@ function findLargestTerritory(board, playerId) {
       }
     }
 
-    if (component.size > largest.size) {
-      largest = component;
-    }
+    territories.push(component);
+    largestSize = Math.max(largestSize, component.size);
   }
 
-  return largest;
+  const candidates = territories.filter((territory) => territory.size === largestSize);
+  if (candidates.length === 0) {
+    return new Set();
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0];
+  }
+
+  const index = Math.floor(randomFn() * candidates.length);
+  return candidates[index];
 }
 
 function findEligibleBorderNodes(board, playerId, territoryNodeIds) {
@@ -70,11 +80,12 @@ function findEligibleBorderNodes(board, playerId, territoryNodeIds) {
   return eligible;
 }
 
-export function evaluateReinforcements(board, playerId) {
+export function evaluateReinforcements(board, playerId, { random } = {}) {
   assertBoard(board);
   assertPlayerId(playerId);
 
-  const territory = findLargestTerritory(board, playerId);
+  const randomFn = typeof random === 'function' ? random : Math.random;
+  const territory = findLargestTerritory(board, playerId, randomFn);
   const territoryNodeIds = Array.from(territory.values());
   const total = territoryNodeIds.length;
 
@@ -103,7 +114,8 @@ function shuffle(array, randomFn = Math.random) {
 }
 
 export function allocateReinforcements({ board, playerId, random }) {
-  const summary = evaluateReinforcements(board, playerId);
+  const randomFn = typeof random === 'function' ? random : Math.random;
+  const summary = evaluateReinforcements(board, playerId, { random: randomFn });
   const { eligibleNodeIds, baseAmount, remainder } = summary;
   const allocations = [];
 
@@ -118,7 +130,7 @@ export function allocateReinforcements({ board, playerId, random }) {
 
   if (remainder > 0) {
     const order = [...eligibleNodeIds];
-    shuffle(order, typeof random === 'function' ? random : Math.random);
+    shuffle(order, randomFn);
     for (let i = 0; i < remainder; i += 1) {
       const targetId = order[i % order.length];
       totals.set(targetId, (totals.get(targetId) ?? 0) + 1);

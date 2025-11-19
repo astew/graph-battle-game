@@ -22,7 +22,8 @@ Workspaces may share TypeScript types; currently `packages/core` is implemented 
    - `BoardGenerator` strategy interface with `StandardBoardGenerator` implementation.
    - `ReinforcementService`, `AttackResolver`, `TurnManager`, each exposing stateless functions that accept and return domain structures.
    - `RulesetFactory` or `GameProfile` — a lightweight factory that wraps `GameEngine` construction for standard game instances (size / starting nodes / reinforcements / attack probability) while keeping the engine itself agnostic of high-level parameterization.
-      - Reinforcement tie-breaker: when multiple territories tie for the largest size, the standard rules choose one at random. This avoids deterministic biases in allocation order and should be reflected in `ReinforcementService` behavior.
+      - Standard implementation: `createStandardGame` accepts rows/columns/nodesPerPlayer/initialReinforcements/attackWinProb/maxNodes/players/rng and returns a configured `GameEngine` using `StandardBoardGenerator`.
+      - Reinforcement tie-breaker: when multiple territories tie for the largest size, the standard rules choose one at random (via injected RNG). This avoids deterministic biases in allocation order and is emitted to observers.
 3. **Game Orchestrator**
    - `GameEngine` class coordinates phases of the game, exposes a thin API (`applyAction`, `advanceTurn`, `getView`).
    - Emits domain events (`GameEvent`) to observers (UI, bots, simulator) through an `EventBus` interface using publish/subscribe.
@@ -33,8 +34,7 @@ Workspaces may share TypeScript types; currently `packages/core` is implemented 
 - `rules/attack.ts`, `rules/reinforcements.ts`, `rules/turn.ts` implementing service interfaces.
 - `engine/game-engine.ts`: orchestrator, ensures actions legal before calling rule services.
 - `engine/game-controller.ts`: higher-level façade for consumers, bundling engine + event bus.
-- `events.ts`: `GameEvent` union covering `TurnStarted`, `AttackResolved`, `ReinforcementsAwarded`, etc.
-   - `events.ts`: `GameEvent` union covering `TurnStarted`, `TURN_SKIPPED`, `ATTACK_ITERATION`, `AttackResolved`, `REINFORCEMENTS_AWARDED`, and optionally `REINFORCEMENT_STEP` used by UI for animation.
+- `events.ts`: `GameEvent` union covering `TurnStarted`, `TURN_SKIPPED`, `ATTACK_ITERATION`, `AttackResolved`, `REINFORCEMENT_STEP`, and `REINFORCEMENTS_AWARDED` used by UI for animation and analytics.
 - `view/selectors.ts`: selectors that derive read-optimized views for UI (e.g., `BoardView`, `PlayerSummary`).
 
 ### 2.3 Key Patterns & Guidelines

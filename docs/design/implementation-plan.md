@@ -23,6 +23,11 @@ The core engine is the authoritative source of game state. Phase A focuses on cl
 - Attack iteration events published during combat
 - Reinforcement step events and the tie-breaker rules exposed to the UI
 
+Current implementation (Phase A)
+- `createStandardGame({ rows, columns, nodesPerPlayer, initialReinforcements, attackWinProb, maxNodes, players, rng })` in `@graph-battle/core` returns a fully configured `GameEngine` using `StandardBoardGenerator`. Defaults mirror the original 8x6, 30-node layout with five players and 12 starting strength per player.
+- The engine emits `ATTACK_ITERATION` events for every combat round with payload `{ attackerNodeId, defenderNodeId, winner, attackerStrength, defenderStrength, index }` and continues to publish `ATTACK_RESOLVED` summaries.
+- Reinforcement allocation now breaks ties between equal-sized territories using the injected RNG and emits `REINFORCEMENT_STEP` events (one per awarded unit) alongside the final `REINFORCEMENTS_AWARDED` summary.
+
 Deliverables
 1. Ruleset / GameProfile factory
    - API: createStandardGame({ rows, columns, nodesPerPlayer, initialReinforcements, attackWinProb, maxNodes }) => GameEngine

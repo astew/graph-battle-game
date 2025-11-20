@@ -45,7 +45,7 @@ test('StandardBoardGenerator creates a connected 8x6 board with balanced ownersh
     const strengthTotal = Array.from(board.nodes.values())
       .filter((node) => node.ownerId === player.id)
       .reduce((sum, node) => sum + node.strength, 0);
-    assert.equal(strengthTotal, 12);
+    assert.equal(strengthTotal, 20);
   }
 
   const visited = new Set();

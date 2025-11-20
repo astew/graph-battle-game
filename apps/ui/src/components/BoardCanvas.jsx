@@ -73,7 +73,7 @@ function BoardCanvas({
   const highlightedEdgeKeys = highlightedEdges ?? new Set();
   const activeEdgeKey =
     activeAnimation?.type === 'attack-iteration'
-      ? createEdgeKey(activeAnimation.attackerNodeId, activeAnimation.defenderNodeId)
+      ? createEdgeKey(activeAnimation.attackerId, activeAnimation.defenderId)
       : null;
 
   const boardClasses = ['board', 'board-canvas'];
@@ -166,10 +166,10 @@ function BoardCanvas({
     if (node.ownerId && node.ownerId === currentPlayerId) {
       classes.push('board-node--active-owner');
     }
-    if (activeAnimation?.type === 'attack-iteration' && node.id === activeAnimation.attackerNodeId) {
+    if (activeAnimation?.type === 'attack-iteration' && node.id === activeAnimation.attackerId) {
       classes.push('board-node--attack-source');
     }
-    if (activeAnimation?.type === 'attack-iteration' && node.id === activeAnimation.defenderNodeId) {
+    if (activeAnimation?.type === 'attack-iteration' && node.id === activeAnimation.defenderId) {
       classes.push('board-node--attack-target');
     }
     if (activeAnimation?.type === 'reinforcement-step' && node.id === activeAnimation.nodeId) {

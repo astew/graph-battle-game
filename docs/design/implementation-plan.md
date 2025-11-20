@@ -25,7 +25,7 @@ The core engine is the authoritative source of game state. Phase A focuses on cl
 
 Current implementation (Phase A)
 - `createStandardGame({ rows, columns, nodesPerPlayer, initialReinforcements, attackWinProb, maxNodes, players, rng })` in `@graph-battle/core` returns a fully configured `GameEngine` using `StandardBoardGenerator`. Defaults mirror the original 8x6, 30-node layout with five players and 12 starting strength per player.
-- The engine emits `ATTACK_ITERATION` events for every combat round with payload `{ attackerNodeId, defenderNodeId, winner, attackerStrength, defenderStrength, index }` and continues to publish `ATTACK_RESOLVED` summaries.
+- The engine emits `ATTACK_ITERATION` events for every combat round with payload `{ attackerId, defenderId, winner, attackerStrength, defenderStrength, index }` and continues to publish `ATTACK_RESOLVED` summaries.
 - Reinforcement allocation now breaks ties between equal-sized territories using the injected RNG and emits `REINFORCEMENT_STEP` events (one per awarded unit) alongside the final `REINFORCEMENTS_AWARDED` summary.
 
 Deliverables
@@ -34,7 +34,7 @@ Deliverables
    - Acceptance criteria: new factory returns a `GameEngine` instance that behaves identically to current `StandardBoardGenerator` when called with default parameters; tests will verify several configurations produce connected boards and correct players' allocations.
 
 2. Attack iteration events
-   - Add an `ATTACK_ITERATION` event with payload: { attackerNodeId, defenderNodeId, winner: 'attacker'|'defender', attackerStrength, defenderStrength, index }
+   - Add an `ATTACK_ITERATION` event with payload: { attackerId, defenderId, winner: 'attacker'|'defender', attackerStrength, defenderStrength, index }
    - Acceptance criteria: `GameEngine#applyAction(AttackAction)` emits iteration events for each coin flip; the previously emitted `ATTACK_RESOLVED` remains as the final summary. Tests assert the number of iterations equals rounds in `#resolveAttack` and the final state matches previous tests.
 
 3. Reinforcement step events and tie-breaker

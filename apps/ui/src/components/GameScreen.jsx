@@ -1,13 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import BoardCanvas from './BoardCanvas.jsx';
 
-function PlayerTrack({ players, nodes, currentPlayerId }) {
-  const totals = new Map(players.map((player) => [player.id, 0]));
-  for (const node of nodes ?? []) {
-    if (node.ownerId && totals.has(node.ownerId)) {
-      totals.set(node.ownerId, totals.get(node.ownerId) + 1);
-    }
-  }
+function PlayerTrack({ players, totals, currentPlayerId }) {
 
   return (
     <div className="player-track">
@@ -71,7 +65,7 @@ export default function GameScreen({
 
   const animationMessage = useMemo(() => {
     if (activeAnimation?.type === 'attack-iteration') {
-      return `Resolving attack between ${activeAnimation.attackerNodeId} and ${activeAnimation.defenderNodeId} (${activeAnimation.winner} won iteration ${
+      return `Resolving attack between ${activeAnimation.attackerId} and ${activeAnimation.defenderId} (${activeAnimation.winner} won iteration ${
         (activeAnimation.index ?? 0) + 1
       }).`;
     }
@@ -86,18 +80,18 @@ export default function GameScreen({
     return '';
   }, [activeAnimation, interactionLocked]);
 
+  if (!view) {
+    return <div className="game-screen">Loading game...</div>;
+  }
+
   return (
     <div className="game-screen">
       <section className="board-panel card card--flush">
         <div className="board-panel__header">
           <h2>Battlefield</h2>
-          <PlayerTrack players={players} nodes={view.nodes} currentPlayerId={view.currentPlayerId} />
+          <PlayerTrack players={players} totals={view.playerTotals} currentPlayerId={view.currentPlayerId} />
         </div>
-        <div className="board-panel__status" aria-live="polite">
-          <div className="animation-status" data-locked={interactionLocked}>
-            <span className="animation-status__dot" aria-hidden="true" />
-            <span>{animationMessage || 'Ready for orders.'}</span>
-          </div>
+        {/* <div className="board-panel__status">
           <label className="animation-speed" htmlFor="animation-speed">
             <span className="animation-speed__label">Animation speed</span>
             <select
@@ -109,7 +103,7 @@ export default function GameScreen({
               <option value="fast">Fast</option>
             </select>
           </label>
-        </div>
+        </div> */}
         <BoardCanvas
           nodes={view.nodes}
           edges={view.edges ?? []}

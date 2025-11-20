@@ -167,8 +167,8 @@ export class GameEngine {
       type: EVENT_TYPES.ATTACK_RESOLVED,
       payload: {
         playerId: action.playerId,
-        attackerNodeId: attackerNode.id,
-        defenderNodeId: defenderNode.id,
+        attackerId: attackerNode.id,
+        defenderId: defenderNode.id,
         success: outcome.success,
         rounds: outcome.rounds,
         attackerStrength: updatedAttackerNode.strength,
@@ -244,31 +244,38 @@ export class GameEngine {
     let stepIndex = 0;
     const totalSteps = summary.allocations.reduce((sum, allocation) => sum + allocation.amount, 0);
     for (const allocation of summary.allocations) {
-      const currentNode = this.state.board.nodes.get(allocation.nodeId);
+      let currentNode = this.state.board.nodes.get(allocation.nodeId);
       if (!currentNode) {
         continue;
       }
 
       for (let i = 0; i < allocation.amount; i += 1) {
+        const updatedNode = createNodeState({
+          ...currentNode,
+          strength: currentNode.strength + 1,
+        });
+        updatedNodes.set(updatedNode.id, updatedNode);
+
         this.eventBus.publish({
           type: EVENT_TYPES.REINFORCEMENT_STEP,
           payload: {
             playerId,
             nodeId: allocation.nodeId,
-            amount: 1,
+            strength: updatedNode.strength,
             step: stepIndex,
             totalSteps,
           },
         });
         stepIndex += 1;
-      }
 
-      const updatedNode = createNodeState({
-        ...currentNode,
-        strength: currentNode.strength + allocation.amount,
-      });
-      updatedNodes.set(updatedNode.id, updatedNode);
+        currentNode = updatedNode;
+      }
     }
+
+    this.eventBus.publish({
+      type: EVENT_TYPES.REINFORCEMENTS_COMPLETE,
+      payload: { playerId },
+    });
 
     const updatedBoard = Object.freeze({
       ...this.state.board,
@@ -314,8 +321,8 @@ export class GameEngine {
       this.eventBus.publish({
         type: EVENT_TYPES.ATTACK_ITERATION,
         payload: {
-          attackerNodeId: attackerNode.id,
-          defenderNodeId: defenderNode.id,
+          attackerId: attackerNode.id,
+          defenderId: defenderNode.id,
           winner: attackerWins ? 'attacker' : 'defender',
           attackerStrength,
           defenderStrength,

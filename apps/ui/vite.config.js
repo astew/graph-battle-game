@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   optimizeDeps: {
-    include: ['@graph-battle/core'],
+    exclude: ['@graph-battle/core'],
   },
   build: {
     outDir: 'dist',

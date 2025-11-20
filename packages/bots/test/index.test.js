@@ -21,8 +21,8 @@ test('createDoNothingBot generates a color-coded name and passive action', () =>
 
   const context = createBotContext('green');
   const decision = bot.selectAction(context);
-  assert.equal(decision.attackerNodeId, null);
-  assert.equal(decision.targetNodeId, null);
+  assert.equal(decision.attackerId, null);
+  assert.equal(decision.defenderId, null);
   assert.deepEqual(decision.snapshot, context.snapshot);
 });
 

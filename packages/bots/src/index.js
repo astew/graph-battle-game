@@ -41,8 +41,8 @@ export function createDoNothingBot(color) {
     name,
     selectAction(context) {
       return {
-        attackerNodeId: null,
-        targetNodeId: null,
+        attackerId: null,
+        defenderId: null,
         snapshot: context.snapshot,
       };
     },

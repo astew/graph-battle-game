@@ -3,7 +3,7 @@ import { createBoardState, createNodeState } from '../domain/entities.js';
 const GRID_ROWS = 8;
 const GRID_COLUMNS = 6;
 const TARGET_NODE_COUNT = 30;
-const DEFAULT_STRENGTH_PER_PLAYER = 12;
+const DEFAULT_STRENGTH_PER_PLAYER = 20;
 const MIN_STRENGTH_PER_NODE = 1;
 
 function clampIndex(value, max) {

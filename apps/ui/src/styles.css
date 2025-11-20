@@ -266,7 +266,7 @@ body {
 }
 
 .player-track__badge--active {
-  animation: badgePulse 1.9s ease-in-out infinite;
+  animation: badgePulse 1.0s ease-in-out infinite;
   box-shadow: 0 18px 35px rgba(0, 0, 0, 0.25), inset 0 0 0 3px rgba(255, 255, 255, 0.8);
 }
 
@@ -362,7 +362,7 @@ body {
 }
 
 .board-node--active-owner circle {
-  animation: nodePulse 2.2s ease-in-out infinite;
+  animation: nodePulse 1.0s ease-in-out infinite;
 }
 
 .board-node--attack-source circle {
@@ -373,7 +373,7 @@ body {
   animation: attackTargetPulse 0.42s ease-in-out infinite;
 }
 
-.board-node--reinforcing circle {
+.board-node--reinforcing {
   animation: reinforcementStep 0.7s ease-in-out infinite;
 }
 
@@ -446,16 +446,13 @@ body {
 
 @keyframes reinforcementStep {
   0% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 0 rgba(109, 108, 128, 0));
+    filter: drop-shadow(0 0 0 rgba(75, 91, 220, 0));
   }
-  45% {
-    transform: scale(1.12);
-    filter: drop-shadow(0 0 10px rgba(75, 91, 220, 0.4));
+  50% {
+    filter: drop-shadow(0 0 25px rgba(75, 91, 220, 1));
   }
   100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 0 rgba(109, 108, 128, 0));
+    filter: drop-shadow(0 0 0 rgba(75, 91, 220, 0));
   }
 }
 

@@ -6,7 +6,7 @@ import { createMulberry32 } from './rng/mulberry32.js';
 const DEFAULT_ROWS = 8;
 const DEFAULT_COLUMNS = 6;
 const DEFAULT_NODES_PER_PLAYER = 6;
-const DEFAULT_REINFORCEMENTS = 12;
+const DEFAULT_REINFORCEMENTS = 20;
 const DEFAULT_ATTACK_WIN_PROBABILITY = 0.5;
 const DEFAULT_PLAYER_COUNT = 5;
 

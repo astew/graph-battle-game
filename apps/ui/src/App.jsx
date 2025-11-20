@@ -3,10 +3,10 @@ import core from '@graph-battle/core';
 import GameScreen from './components/GameScreen.jsx';
 import TitleScreen from './components/TitleScreen.jsx';
 import { formatEventLogEntry, DEFAULT_PLAYERS } from './utils/gameHelpers.js';
+import useDisplayInterpolator from './useDisplayInterpolator.js';
+import { ATTACK_ITERATION_MS, REINFORCEMENT_STEP_MS } from './constants.js';
 
-const STANDARD_BOARD_DIMENSIONS = Object.freeze({ rows: 8, columns: 6 });
-const ATTACK_ITERATION_MS = 240;
-const REINFORCEMENT_STEP_MS = 360;
+const STANDARD_BOARD_DIMENSIONS = Object.freeze({ rows: 7, columns: 6 });
 
 const {
   GameEngine,
@@ -39,8 +39,7 @@ export default function App() {
   const subscriptionsRef = useRef([]);
   const playersRef = useRef(new Map());
   const logCounterRef = useRef(0);
-  const animationQueueRef = useRef([]);
-  const animationTimerRef = useRef(null);
+  const eventBusRef = useRef(null);
   const reinforcementLockRef = useRef(false);
   const [mode, setMode] = useState('menu');
   const [view, setView] = useState(null);
@@ -48,21 +47,11 @@ export default function App() {
   const [interaction, setInteraction] = useState({ mode: 'idle', attackerId: null });
   const [eventLog, setEventLog] = useState([]);
   const [reinforcementHighlights, setReinforcementHighlights] = useState(new Set());
-  const [activeAnimation, setActiveAnimation] = useState(null);
-  const [interactionLocked, setInteractionLocked] = useState(false);
-  const [animationQueueVersion, setAnimationQueueVersion] = useState(0);
   const [animationSpeed, setAnimationSpeed] = useState('normal');
 
-  useEffect(() => {
-    return () => {
-      subscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
-      subscriptionsRef.current = [];
-      if (animationTimerRef.current) {
-        clearTimeout(animationTimerRef.current);
-        animationTimerRef.current = null;
-      }
-    };
-  }, []);
+  const [displayView, activeAnimation, isInteractionLocked] = useDisplayInterpolator(eventBusRef.current, view, () => engineRef.current?.getView(), animationSpeed);
+
+  const interactionLocked = isInteractionLocked || reinforcementLockRef.current;
 
   useEffect(() => {
     playersRef.current = new Map(players.map((player) => [player.id, player]));
@@ -78,11 +67,6 @@ export default function App() {
     setEventLog((previous) => [entry, ...previous].slice(0, 30));
   }, []);
 
-  const enqueueAnimation = useCallback((animation) => {
-    animationQueueRef.current.push(animation);
-    setAnimationQueueVersion((value) => value + 1);
-  }, []);
-
   const attachEventBus = useCallback(
     (eventBus) => {
       subscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
@@ -91,26 +75,18 @@ export default function App() {
         eventBus.subscribe(EVENT_TYPES.TURN_STARTED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_ENDED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_SKIPPED, appendEventLog),
-        eventBus.subscribe(EVENT_TYPES.ATTACK_RESOLVED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.REINFORCEMENTS_AWARDED, (event) => {
           appendEventLog(event);
           reinforcementLockRef.current = false;
-          setInteractionLocked(animationQueueRef.current.length > 0 || Boolean(activeAnimation));
-        }),
-        eventBus.subscribe(EVENT_TYPES.ATTACK_ITERATION, (event) => {
-          enqueueAnimation({ type: 'attack-iteration', ...event.payload });
-        }),
-        eventBus.subscribe(EVENT_TYPES.REINFORCEMENT_STEP, (event) => {
-          reinforcementLockRef.current = true;
-          enqueueAnimation({ type: 'reinforcement-step', ...event.payload });
         }),
       ];
     },
-    [activeAnimation, appendEventLog, enqueueAnimation]
+    [activeAnimation, appendEventLog]
   );
 
   const startNewGame = useCallback(() => {
     const eventBus = new EventBus();
+    eventBusRef.current = eventBus;
     playersRef.current = new Map(DEFAULT_PLAYERS.map((player) => [player.id, player]));
     setEventLog([]);
     logCounterRef.current = 0;
@@ -126,11 +102,7 @@ export default function App() {
     setMode('playing');
     setInteraction({ mode: 'idle', attackerId: null });
     setReinforcementHighlights(new Set());
-    setActiveAnimation(null);
-    setAnimationQueueVersion(0);
-    animationQueueRef.current = [];
     reinforcementLockRef.current = false;
-    setInteractionLocked(false);
   }, [attachEventBus]);
 
   const endTurn = useCallback(() => {
@@ -149,11 +121,11 @@ export default function App() {
   }, [interactionLocked]);
 
   const nodesById = useMemo(() => {
-    if (!view) {
+    if (!displayView) {
       return new Map();
     }
-    return new Map(view.nodes.map((node) => [node.id, node]));
-  }, [view]);
+    return new Map(displayView.nodes.map((node) => [node.id, node]));
+  }, [displayView]);
 
   const targetNodeIds = useMemo(() => {
     if (!view || !interaction.attackerId || !engineRef.current) {
@@ -186,11 +158,11 @@ export default function App() {
       return new Set();
     }
     return new Set(
-      view.nodes
-        .filter((node) => node.ownerId === view.currentPlayerId && node.strength >= 2)
+      displayView.nodes
+        .filter((node) => node.ownerId === displayView.currentPlayerId && node.strength >= 2)
         .map((node) => node.id)
     );
-  }, [view, interaction.attackerId, targetNodeIds]);
+  }, [displayView, interaction.attackerId, targetNodeIds]);
 
   const handleNodeSelect = useCallback(
     (nodeId) => {
@@ -275,33 +247,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [view]);
 
-  useEffect(() => {
-    if (activeAnimation || animationQueueRef.current.length === 0) {
-      setInteractionLocked(reinforcementLockRef.current || Boolean(activeAnimation));
-      return undefined;
-    }
-
-    const nextAnimation = animationQueueRef.current.shift();
-    setAnimationQueueVersion((value) => value + 1);
-    setActiveAnimation(nextAnimation);
-    setInteractionLocked(true);
-
-    const speedMultiplier = animationSpeed === 'fast' ? 0.55 : 1;
-    const baseDuration = nextAnimation.type === 'attack-iteration' ? ATTACK_ITERATION_MS : REINFORCEMENT_STEP_MS;
-    const duration = Math.max(140, baseDuration * speedMultiplier);
-
-    animationTimerRef.current = setTimeout(() => {
-      setActiveAnimation(null);
-    }, duration);
-
-    return () => {
-      if (animationTimerRef.current) {
-        clearTimeout(animationTimerRef.current);
-        animationTimerRef.current = null;
-      }
-    };
-  }, [activeAnimation, animationQueueVersion, animationSpeed]);
-
   const header = (
     <header className="app-header">
       <p className="eyebrow">Prototype</p>
@@ -325,7 +270,7 @@ export default function App() {
           </>
         ) : (
             <GameScreen
-              view={view}
+              view={displayView}
               players={players}
               onEndTurn={endTurn}
               onNodeSelect={handleNodeSelect}
@@ -333,7 +278,7 @@ export default function App() {
               targetNodeIds={targetNodeIds}
               eventLog={eventLog}
               reinforcementHighlights={reinforcementHighlights}
-              gridDimensions={view?.grid}
+              gridDimensions={displayView?.grid}
               highlightedEdges={highlightedEdges}
               activeAnimation={activeAnimation}
               interactionLocked={interactionLocked}

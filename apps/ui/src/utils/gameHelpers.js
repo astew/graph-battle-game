@@ -33,7 +33,7 @@ function formatEventLogEntry(event, playersById) {
     case EVENT_TYPES.TURN_SKIPPED:
       return `${resolvePlayer(event.payload.turn.activePlayerId)} was skipped (no territory remaining).`;
     case EVENT_TYPES.ATTACK_RESOLVED:
-      return `${resolvePlayer(event.payload.playerId)} attacked ${event.payload.defenderNodeId} from ${event.payload.attackerNodeId} (${event.payload.success ? 'victory' : 'defeat'}).`;
+      return `${resolvePlayer(event.payload.playerId)} attacked ${event.payload.defenderId} from ${event.payload.attackerId} (${event.payload.success ? 'victory' : 'defeat'}).`;
     case EVENT_TYPES.REINFORCEMENTS_AWARDED:
       return `${resolvePlayer(event.payload.playerId)} received ${event.payload.total} reinforcements.`;
     default:

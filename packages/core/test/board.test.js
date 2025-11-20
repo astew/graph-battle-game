@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { EmptyBoardGenerator } from '../src/board/empty-board-generator.js';
 import { StandardBoardGenerator } from '../src/board/standard-board-generator.js';
+import { buildAdjacencyMap } from '../src/board/graph-utils.js';
 import { createMulberry32 } from '../src/rng/mulberry32.js';
 
 const PLAYERS = [
@@ -44,7 +45,7 @@ test('StandardBoardGenerator creates a connected 8x6 board with balanced ownersh
     const strengthTotal = Array.from(board.nodes.values())
       .filter((node) => node.ownerId === player.id)
       .reduce((sum, node) => sum + node.strength, 0);
-    assert.equal(strengthTotal, 12);
+    assert.equal(strengthTotal, 20);
   }
 
   const visited = new Set();
@@ -82,4 +83,16 @@ test('StandardBoardGenerator varies removed cells when rng seed changes', () => 
 
   assert.equal(positionsSignature(boardA), positionsSignature(boardARepeat));
   assert.notEqual(positionsSignature(boardA), positionsSignature(boardB));
+});
+
+test('buildAdjacencyMap produces symmetric neighbor sets', () => {
+  const adjacency = buildAdjacencyMap([
+    ['a', 'b'],
+    ['b', 'c'],
+  ]);
+
+  assert.equal(adjacency.get('a') instanceof Set, true);
+  assert.deepEqual(new Set(adjacency.get('a')), new Set(['b']));
+  assert.deepEqual(new Set(adjacency.get('b')), new Set(['a', 'c']));
+  assert.deepEqual(new Set(adjacency.get('c')), new Set(['b']));
 });

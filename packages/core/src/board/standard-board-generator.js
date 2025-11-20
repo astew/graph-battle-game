@@ -3,8 +3,7 @@ import { createBoardState, createNodeState } from '../domain/entities.js';
 const GRID_ROWS = 8;
 const GRID_COLUMNS = 6;
 const TARGET_NODE_COUNT = 30;
-const REQUIRED_PLAYER_COUNT = 5;
-const STRENGTH_PER_PLAYER = 12;
+const DEFAULT_STRENGTH_PER_PLAYER = 20;
 const MIN_STRENGTH_PER_NODE = 1;
 
 function clampIndex(value, max) {
@@ -13,7 +12,13 @@ function clampIndex(value, max) {
 }
 
 export class StandardBoardGenerator {
-  constructor({ rows = GRID_ROWS, columns = GRID_COLUMNS, targetNodeCount = TARGET_NODE_COUNT } = {}) {
+  constructor({
+    rows = GRID_ROWS,
+    columns = GRID_COLUMNS,
+    targetNodeCount = TARGET_NODE_COUNT,
+    nodesPerPlayer = null,
+    strengthPerPlayer = DEFAULT_STRENGTH_PER_PLAYER,
+  } = {}) {
     if (!Number.isInteger(rows) || rows <= 0) {
       throw new Error('rows must be a positive integer.');
     }
@@ -27,29 +32,42 @@ export class StandardBoardGenerator {
       throw new Error('targetNodeCount must be a positive integer not exceeding rows * columns.');
     }
 
-    if (targetNodeCount % REQUIRED_PLAYER_COUNT !== 0) {
-      throw new Error('targetNodeCount must be divisible by the number of standard players.');
+    if (nodesPerPlayer !== null && (!Number.isInteger(nodesPerPlayer) || nodesPerPlayer <= 0)) {
+      throw new Error('nodesPerPlayer must be a positive integer when provided.');
+    }
+
+    if (!Number.isInteger(strengthPerPlayer) || strengthPerPlayer <= 0) {
+      throw new Error('strengthPerPlayer must be a positive integer.');
     }
 
     this.rows = rows;
     this.columns = columns;
     this.targetNodeCount = targetNodeCount;
-    this.nodesPerPlayer = targetNodeCount / REQUIRED_PLAYER_COUNT;
+    this.nodesPerPlayer = nodesPerPlayer;
+    this.strengthPerPlayer = strengthPerPlayer;
   }
 
   generate({ players, rng } = {}) {
-    if (!Array.isArray(players) || players.length !== REQUIRED_PLAYER_COUNT) {
-      throw new Error('StandardBoardGenerator requires exactly five players.');
+    if (!Array.isArray(players) || players.length === 0) {
+      throw new Error('StandardBoardGenerator requires players to assign nodes.');
     }
 
     const random = this.#normalizeRandom(rng);
-    const selectedCells = this.#selectCells(random);
+    const nodesPerPlayer = this.#determineNodesPerPlayer(players.length);
+    const targetNodeCount = nodesPerPlayer * players.length;
+
+    const maxNodes = this.rows * this.columns;
+    if (targetNodeCount > maxNodes) {
+      throw new Error('Requested node count exceeds available grid cells.');
+    }
+
+    const selectedCells = this.#selectCells(random, targetNodeCount);
     const nodes = selectedCells.map((position, index) => ({
       id: `node-${index + 1}`,
       position,
     }));
 
-    const nodeStates = this.#assignOwnership(nodes, players, random);
+    const nodeStates = this.#assignOwnership(nodes, players, random, nodesPerPlayer);
     const edges = this.#buildEdges(selectedCells, nodeStates);
 
     return createBoardState({
@@ -57,6 +75,22 @@ export class StandardBoardGenerator {
       edges,
       dimensions: { rows: this.rows, columns: this.columns },
     });
+  }
+
+  #determineNodesPerPlayer(playerCount) {
+    if (playerCount <= 0) {
+      throw new Error('StandardBoardGenerator requires at least one player.');
+    }
+
+    if (this.nodesPerPlayer !== null) {
+      return this.nodesPerPlayer;
+    }
+
+    if (this.targetNodeCount % playerCount !== 0) {
+      throw new Error('targetNodeCount must be divisible by the number of players.');
+    }
+
+    return this.targetNodeCount / playerCount;
   }
 
   #normalizeRandom(rng) {
@@ -116,7 +150,7 @@ export class StandardBoardGenerator {
     return order;
   }
 
-  #selectCells(rng) {
+  #selectCells(rng, targetSize) {
     const allCells = [];
     for (let row = 0; row < this.rows; row += 1) {
       for (let column = 0; column < this.columns; column += 1) {
@@ -126,7 +160,6 @@ export class StandardBoardGenerator {
 
     const cellMap = new Map(allCells.map((cell) => [this.#coordinatesKey(cell), cell]));
     const activeKeys = new Set(cellMap.keys());
-    const targetSize = this.targetNodeCount;
     const maxAttempts = 50;
     let attempt = 0;
 
@@ -201,7 +234,7 @@ export class StandardBoardGenerator {
     return results;
   }
 
-  #assignOwnership(nodes, players, rng) {
+  #assignOwnership(nodes, players, rng, nodesPerPlayer) {
     const shuffled = [...nodes];
     this.#shuffle(shuffled, rng);
 
@@ -209,8 +242,8 @@ export class StandardBoardGenerator {
     let cursor = 0;
 
     for (const player of players) {
-      const strengthBuckets = this.#distributeStrength(rng, this.nodesPerPlayer);
-      for (let i = 0; i < this.nodesPerPlayer; i += 1) {
+      const strengthBuckets = this.#distributeStrength(rng, nodesPerPlayer);
+      for (let i = 0; i < nodesPerPlayer; i += 1) {
         const node = shuffled[cursor];
         cursor += 1;
         assigned.push(
@@ -228,8 +261,12 @@ export class StandardBoardGenerator {
   }
 
   #distributeStrength(rng, slotCount) {
+    if (this.strengthPerPlayer < MIN_STRENGTH_PER_NODE * slotCount) {
+      throw new Error('strengthPerPlayer must allow at least 1 strength per node.');
+    }
+
     const strengths = new Array(slotCount).fill(MIN_STRENGTH_PER_NODE);
-    let remaining = STRENGTH_PER_PLAYER - MIN_STRENGTH_PER_NODE * slotCount;
+    let remaining = this.strengthPerPlayer - MIN_STRENGTH_PER_NODE * slotCount;
 
     while (remaining > 0) {
       const index = Math.floor(rng.next() * slotCount);

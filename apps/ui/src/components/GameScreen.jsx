@@ -1,13 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import BoardCanvas from './BoardCanvas.jsx';
 
-function PlayerTrack({ players, nodes, currentPlayerId }) {
-  const totals = new Map(players.map((player) => [player.id, 0]));
-  for (const node of nodes ?? []) {
-    if (node.ownerId && totals.has(node.ownerId)) {
-      totals.set(node.ownerId, totals.get(node.ownerId) + 1);
-    }
-  }
+function PlayerTrack({ players, totals, currentPlayerId }) {
 
   return (
     <div className="player-track">
@@ -57,6 +51,10 @@ export default function GameScreen({
   reinforcementHighlights,
   gridDimensions,
   highlightedEdges,
+  activeAnimation,
+  interactionLocked,
+  animationSpeed,
+  onAnimationSpeedChange,
   initialLogOpen = false,
 }) {
   const playersById = useMemo(() => new Map(players.map((player) => [player.id, player])), [
@@ -65,13 +63,47 @@ export default function GameScreen({
   const [logOpen, setLogOpen] = useState(initialLogOpen);
   const toggleLog = () => setLogOpen((open) => !open);
 
+  const animationMessage = useMemo(() => {
+    if (activeAnimation?.type === 'attack-iteration') {
+      return `Resolving attack between ${activeAnimation.attackerId} and ${activeAnimation.defenderId} (${activeAnimation.winner} won iteration ${
+        (activeAnimation.index ?? 0) + 1
+      }).`;
+    }
+    if (activeAnimation?.type === 'reinforcement-step') {
+      return `Applying reinforcement ${
+        (activeAnimation.step ?? 0) + 1
+      } of ${activeAnimation.totalSteps} to ${activeAnimation.nodeId}.`;
+    }
+    if (interactionLocked) {
+      return 'Animations in progress…';
+    }
+    return '';
+  }, [activeAnimation, interactionLocked]);
+
+  if (!view) {
+    return <div className="game-screen">Loading game...</div>;
+  }
+
   return (
     <div className="game-screen">
       <section className="board-panel card card--flush">
         <div className="board-panel__header">
           <h2>Battlefield</h2>
-          <PlayerTrack players={players} nodes={view.nodes} currentPlayerId={view.currentPlayerId} />
+          <PlayerTrack players={players} totals={view.playerTotals} currentPlayerId={view.currentPlayerId} />
         </div>
+        {/* <div className="board-panel__status">
+          <label className="animation-speed" htmlFor="animation-speed">
+            <span className="animation-speed__label">Animation speed</span>
+            <select
+              id="animation-speed"
+              value={animationSpeed}
+              onChange={(event) => onAnimationSpeedChange?.(event.target.value)}
+            >
+              <option value="normal">Normal</option>
+              <option value="fast">Fast</option>
+            </select>
+          </label>
+        </div> */}
         <BoardCanvas
           nodes={view.nodes}
           edges={view.edges ?? []}
@@ -83,6 +115,7 @@ export default function GameScreen({
           gridDimensions={gridDimensions}
           highlightedEdges={highlightedEdges}
           currentPlayerId={view.currentPlayerId}
+          activeAnimation={activeAnimation}
         />
       </section>
       <section className="turn-controls card">
@@ -100,7 +133,7 @@ export default function GameScreen({
             className="end-turn-button"
             onClick={onEndTurn}
             aria-label="End turn (keyboard shortcut: E)"
-            disabled={logOpen}
+            disabled={logOpen || interactionLocked}
           >
             End Turn
           </button>

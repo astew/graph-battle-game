@@ -3,8 +3,10 @@ import core from '@graph-battle/core';
 import GameScreen from './components/GameScreen.jsx';
 import TitleScreen from './components/TitleScreen.jsx';
 import { formatEventLogEntry, DEFAULT_PLAYERS } from './utils/gameHelpers.js';
+import useDisplayInterpolator from './useDisplayInterpolator.js';
+import { ATTACK_ITERATION_MS, REINFORCEMENT_STEP_MS } from './constants.js';
 
-const STANDARD_BOARD_DIMENSIONS = Object.freeze({ rows: 8, columns: 6 });
+const STANDARD_BOARD_DIMENSIONS = Object.freeze({ rows: 7, columns: 6 });
 
 const {
   GameEngine,
@@ -37,19 +39,19 @@ export default function App() {
   const subscriptionsRef = useRef([]);
   const playersRef = useRef(new Map());
   const logCounterRef = useRef(0);
+  const eventBusRef = useRef(null);
+  const reinforcementLockRef = useRef(false);
   const [mode, setMode] = useState('menu');
   const [view, setView] = useState(null);
   const [players, setPlayers] = useState([]);
   const [interaction, setInteraction] = useState({ mode: 'idle', attackerId: null });
   const [eventLog, setEventLog] = useState([]);
   const [reinforcementHighlights, setReinforcementHighlights] = useState(new Set());
+  const [animationSpeed, setAnimationSpeed] = useState('normal');
 
-  useEffect(() => {
-    return () => {
-      subscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
-      subscriptionsRef.current = [];
-    };
-  }, []);
+  const [displayView, activeAnimation, isInteractionLocked] = useDisplayInterpolator(eventBusRef.current, view, () => engineRef.current?.getView(), animationSpeed);
+
+  const interactionLocked = isInteractionLocked || reinforcementLockRef.current;
 
   useEffect(() => {
     playersRef.current = new Map(players.map((player) => [player.id, player]));
@@ -73,15 +75,18 @@ export default function App() {
         eventBus.subscribe(EVENT_TYPES.TURN_STARTED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_ENDED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_SKIPPED, appendEventLog),
-        eventBus.subscribe(EVENT_TYPES.ATTACK_RESOLVED, appendEventLog),
-        eventBus.subscribe(EVENT_TYPES.REINFORCEMENTS_AWARDED, appendEventLog),
+        eventBus.subscribe(EVENT_TYPES.REINFORCEMENTS_AWARDED, (event) => {
+          appendEventLog(event);
+          reinforcementLockRef.current = false;
+        }),
       ];
     },
-    [appendEventLog]
+    [activeAnimation, appendEventLog]
   );
 
   const startNewGame = useCallback(() => {
     const eventBus = new EventBus();
+    eventBusRef.current = eventBus;
     playersRef.current = new Map(DEFAULT_PLAYERS.map((player) => [player.id, player]));
     setEventLog([]);
     logCounterRef.current = 0;
@@ -97,10 +102,11 @@ export default function App() {
     setMode('playing');
     setInteraction({ mode: 'idle', attackerId: null });
     setReinforcementHighlights(new Set());
+    reinforcementLockRef.current = false;
   }, [attachEventBus]);
 
   const endTurn = useCallback(() => {
-    if (!engineRef.current) {
+    if (!engineRef.current || interactionLocked) {
       return { ok: false, error: { code: 'core.error.noEngine', message: 'No active game.' } };
     }
 
@@ -112,14 +118,14 @@ export default function App() {
     }
 
     return result;
-  }, []);
+  }, [interactionLocked]);
 
   const nodesById = useMemo(() => {
-    if (!view) {
+    if (!displayView) {
       return new Map();
     }
-    return new Map(view.nodes.map((node) => [node.id, node]));
-  }, [view]);
+    return new Map(displayView.nodes.map((node) => [node.id, node]));
+  }, [displayView]);
 
   const targetNodeIds = useMemo(() => {
     if (!view || !interaction.attackerId || !engineRef.current) {
@@ -152,15 +158,15 @@ export default function App() {
       return new Set();
     }
     return new Set(
-      view.nodes
-        .filter((node) => node.ownerId === view.currentPlayerId && node.strength >= 2)
+      displayView.nodes
+        .filter((node) => node.ownerId === displayView.currentPlayerId && node.strength >= 2)
         .map((node) => node.id)
     );
-  }, [view, interaction.attackerId, targetNodeIds]);
+  }, [displayView, interaction.attackerId, targetNodeIds]);
 
   const handleNodeSelect = useCallback(
     (nodeId) => {
-      if (!engineRef.current || !view) {
+      if (!engineRef.current || !view || interactionLocked) {
         return;
       }
       const node = nodesById.get(nodeId);
@@ -198,7 +204,7 @@ export default function App() {
 
       return;
     },
-    [interaction.attackerId, nodesById, targetNodeIds, view]
+    [interaction.attackerId, interactionLocked, nodesById, targetNodeIds, view]
   );
 
   const handleCancel = useCallback(() => {
@@ -263,21 +269,25 @@ export default function App() {
             <TitleScreen onNewGame={startNewGame} />
           </>
         ) : (
-          <GameScreen
-            view={view}
-            players={players}
-            onEndTurn={endTurn}
-            onNodeSelect={handleNodeSelect}
-            interaction={interaction}
-            targetNodeIds={targetNodeIds}
-            eventLog={eventLog}
-            reinforcementHighlights={reinforcementHighlights}
-            gridDimensions={view?.grid}
-            highlightedEdges={highlightedEdges}
-          />
-        )}
-      </div>
-    </main>
+            <GameScreen
+              view={displayView}
+              players={players}
+              onEndTurn={endTurn}
+              onNodeSelect={handleNodeSelect}
+              interaction={interaction}
+              targetNodeIds={targetNodeIds}
+              eventLog={eventLog}
+              reinforcementHighlights={reinforcementHighlights}
+              gridDimensions={displayView?.grid}
+              highlightedEdges={highlightedEdges}
+              activeAnimation={activeAnimation}
+              interactionLocked={interactionLocked}
+              animationSpeed={animationSpeed}
+              onAnimationSpeedChange={setAnimationSpeed}
+            />
+          )}
+        </div>
+      </main>
   );
 }
 

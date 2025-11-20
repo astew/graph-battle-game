@@ -26,6 +26,7 @@ test('GameScreen renders battlefield controls and log toggle', () => {
       { id: 'b', ownerId: 'p2', strength: 1, position: { row: 0, column: 1 } },
     ],
     edges: [['a', 'b']],
+    playerTotals: new Map([['p1', 1], ['p2', 1]]),
     reinforcements: {
       preview: { total: 0, eligibleNodeIds: [] },
       lastAwarded: null,
@@ -70,6 +71,7 @@ test('GameScreen overlay provides a close control when open', () => {
       { id: 'b', ownerId: 'p2', strength: 1, position: { row: 0, column: 1 } },
     ],
     edges: [['a', 'b']],
+    playerTotals: new Map([['p1', 1], ['p2', 1]]),
     reinforcements: {
       preview: { total: 0, eligibleNodeIds: [] },
       lastAwarded: null,

@@ -193,6 +193,50 @@ body {
   gap: 0.75rem;
 }
 
+.board-panel__status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  color: #4b495a;
+}
+
+.animation-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.animation-status__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  animation: statusPulse 1.8s ease-in-out infinite;
+}
+
+.animation-status[data-locked="true"] .animation-status__dot {
+  background: #ef476f;
+  box-shadow: 0 0 0 0 rgba(239, 71, 111, 0.45);
+}
+
+.animation-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #4b495a;
+}
+
+.animation-speed select {
+  border-radius: 10px;
+  border: 1px solid rgba(75, 91, 220, 0.25);
+  padding: 0.35rem 0.6rem;
+}
+
 @media (min-width: 600px) {
   .board-panel__header {
     flex-direction: row;
@@ -222,7 +266,7 @@ body {
 }
 
 .player-track__badge--active {
-  animation: badgePulse 1.9s ease-in-out infinite;
+  animation: badgePulse 1.0s ease-in-out infinite;
   box-shadow: 0 18px 35px rgba(0, 0, 0, 0.25), inset 0 0 0 3px rgba(255, 255, 255, 0.8);
 }
 
@@ -234,6 +278,7 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.board,
 .board-canvas {
   width: 100%;
   height: 100%;
@@ -245,6 +290,14 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
+}
+
+.board--animating .board-node {
+  pointer-events: none;
+}
+
+.board--animating {
+  cursor: wait;
 }
 
 .board-svg {
@@ -277,6 +330,13 @@ body {
   filter: drop-shadow(0 0 6px rgba(251, 133, 0, 0.45));
 }
 
+.board-edge--animating {
+  stroke: #ef476f;
+  stroke-width: 3;
+  animation: edgePulse 0.38s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(239, 71, 111, 0.45));
+}
+
 .board-node {
   cursor: pointer;
   transition: filter 180ms ease, opacity 180ms ease;
@@ -302,7 +362,19 @@ body {
 }
 
 .board-node--active-owner circle {
-  animation: nodePulse 2.2s ease-in-out infinite;
+  animation: nodePulse 1.0s ease-in-out infinite;
+}
+
+.board-node--attack-source circle {
+  animation: attackSourcePulse 0.42s ease-in-out infinite;
+}
+
+.board-node--attack-target circle {
+  animation: attackTargetPulse 0.42s ease-in-out infinite;
+}
+
+.board-node--reinforcing {
+  animation: reinforcementStep 0.7s ease-in-out infinite;
 }
 
 .board-node--targetable circle {
@@ -330,6 +402,36 @@ body {
   }
 }
 
+@keyframes attackSourcePulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+  }
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 12px rgba(75, 91, 220, 0.45));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+  }
+}
+
+@keyframes attackTargetPulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(239, 71, 111, 0));
+  }
+  50% {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 12px rgba(239, 71, 111, 0.65));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(239, 71, 111, 0));
+  }
+}
+
 @keyframes reinforcementPulse {
   0% {
     filter: drop-shadow(0 0 0 rgba(249, 65, 68, 0));
@@ -342,6 +444,18 @@ body {
   }
 }
 
+@keyframes reinforcementStep {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(75, 91, 220, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(75, 91, 220, 1));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(75, 91, 220, 0));
+  }
+}
+
 @keyframes badgePulse {
   0% {
     transform: scale(1.18);
@@ -351,6 +465,33 @@ body {
   }
   100% {
     transform: scale(1.18);
+  }
+}
+
+@keyframes statusPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.05);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes edgePulse {
+  0% {
+    stroke-width: 2;
+    opacity: 0.7;
+  }
+  50% {
+    stroke-width: 4;
+    opacity: 1;
+  }
+  100% {
+    stroke-width: 2;
+    opacity: 0.7;
   }
 }
 

@@ -3,8 +3,11 @@ export const EVENT_TYPES = Object.freeze({
   TURN_STARTED: 'core.event.turnStarted',
   TURN_ENDED: 'core.event.turnEnded',
   TURN_SKIPPED: 'core.event.turnSkipped',
+  ATTACK_ITERATION: 'core.event.attackIteration',
   ATTACK_RESOLVED: 'core.event.attackResolved',
+  REINFORCEMENT_STEP: 'core.event.reinforcementStep',
   REINFORCEMENTS_AWARDED: 'core.event.reinforcementsAwarded',
+  REINFORCEMENTS_COMPLETE: 'core.event.reinforcementsComplete',
 });
 
 export class EventBus {

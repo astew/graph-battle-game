@@ -30,6 +30,7 @@ Graph Battle is a turn-based strategy game played on an undirected graph laid ou
 1. Determine the player's largest connected territory:
    - Remove nodes not owned by the player from the board.
    - Identify connected sub-graphs among the remaining nodes.
+  - If there are multiple connected sub-graphs of the same maximum size, choose one of them at random to be considered the "largest" territory for reinforcement purposes. This ensures reinforcements are applied consistently and avoids deterministic tie-breaker bias.
    - The size of the largest connected sub-graph equals the total reinforcement points earned.
 2. Distribute reinforcement points:
    - Only nodes within the largest territory qualify.

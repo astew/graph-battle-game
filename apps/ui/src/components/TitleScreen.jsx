@@ -6,7 +6,7 @@ export default function TitleScreen({ onNewGame }) {
       <p className="eyebrow">Mode Select</p>
       <h2>Welcome to Graph Battle</h2>
       <p className="lede">
-        Launch a new 5-player match on a procedurally carved grid to explore the core rule set.
+        Lead the red faction against four bot-controlled rivals on a procedurally carved grid.
       </p>
       <button type="button" className="primary-button" onClick={onNewGame}>
         New Game

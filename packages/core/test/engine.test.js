@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { GameEngine } from '../src/engine/game-engine.js';
+import { GameEngine, ERROR_CODES } from '../src/engine/game-engine.js';
 import { canExecuteAttack, ATTACK_INELIGIBILITY_REASONS } from '../src/engine/combat.js';
 import { createEndTurnAction, createAttackAction } from '../src/actions.js';
 import { EventBus, EVENT_TYPES } from '../src/events/index.js';
@@ -339,4 +339,40 @@ test('GameEngine skips players without territory and emits TURN_SKIPPED', () => 
   assert.equal(result.ok, true);
   assert.equal(engine.getState().turn.activePlayerId, 'p3');
   assert.deepEqual(skipped, ['p2']);
+});
+
+test('GameEngine declares a winner once one player controls every node', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 3 },
+      { id: 'b', ownerId: 'p2', strength: 1 },
+    ],
+    edges: [['a', 'b']],
+  });
+  const eventBus = new EventBus();
+  const victories = [];
+  eventBus.subscribe(EVENT_TYPES.GAME_WON, (event) => victories.push(event.payload));
+
+  const engine = new GameEngine({
+    players: PLAYERS,
+    boardGenerator: new FixedBoardGenerator(board),
+    eventBus,
+    rng: createDeterministicRng([0.9]),
+  });
+
+  const attack = engine.applyAction(
+    createAttackAction({ playerId: 'p1', attackerId: 'a', defenderId: 'b' })
+  );
+
+  assert.equal(attack.ok, true);
+  assert.equal(engine.getState().winnerId, 'p1');
+  const view = engine.getView();
+  assert.equal(view.winnerId, 'p1');
+  assert.equal(view.status, 'complete');
+  assert.equal(victories.length, 1);
+  assert.equal(victories[0].winnerId, 'p1');
+
+  const followUp = engine.applyAction(createEndTurnAction('p1'));
+  assert.equal(followUp.ok, false);
+  assert.equal(followUp.error.code, ERROR_CODES.GAME_OVER);
 });

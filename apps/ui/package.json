@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@graph-battle/core": "file:../../packages/core",
+    "@graph-battle/bots": "file:../../packages/bots",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -36,6 +36,8 @@ function formatEventLogEntry(event, playersById) {
       return `${resolvePlayer(event.payload.playerId)} attacked ${event.payload.defenderId} from ${event.payload.attackerId} (${event.payload.success ? 'victory' : 'defeat'}).`;
     case EVENT_TYPES.REINFORCEMENTS_AWARDED:
       return `${resolvePlayer(event.payload.playerId)} received ${event.payload.total} reinforcements.`;
+    case EVENT_TYPES.GAME_WON:
+      return `${resolvePlayer(event.payload.winnerId)} conquered the board.`;
     default:
       return '';
   }

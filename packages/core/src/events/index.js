@@ -8,6 +8,7 @@ export const EVENT_TYPES = Object.freeze({
   REINFORCEMENT_STEP: 'core.event.reinforcementStep',
   REINFORCEMENTS_AWARDED: 'core.event.reinforcementsAwarded',
   REINFORCEMENTS_COMPLETE: 'core.event.reinforcementsComplete',
+  GAME_WON: 'core.event.gameWon',
 });
 
 export class EventBus {

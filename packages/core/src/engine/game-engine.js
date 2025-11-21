@@ -15,6 +15,7 @@ import { canExecuteAttack } from './combat.js';
 export const ERROR_CODES = Object.freeze({
   OUT_OF_TURN: 'core.error.outOfTurn',
   INVALID_ATTACK: 'core.error.invalidAttack',
+  GAME_OVER: 'core.error.gameOver',
 });
 
 export class GameEngine {
@@ -45,6 +46,7 @@ export class GameEngine {
     this.state = Object.freeze({
       ...baseState,
       lastReinforcements: null,
+      winnerId: null,
     });
 
     this.eventBus.publish({
@@ -55,6 +57,8 @@ export class GameEngine {
       type: EVENT_TYPES.TURN_STARTED,
       payload: { turn: this.state.turn },
     });
+
+    this.#checkForVictory();
   }
 
   getState() {
@@ -66,6 +70,8 @@ export class GameEngine {
     return {
       currentPlayerId: this.state.turn.activePlayerId,
       turnNumber: this.state.turn.number,
+      status: this.state.winnerId ? 'complete' : 'active',
+      winnerId: this.state.winnerId,
       nodes: Array.from(this.state.board.nodes.values()).map((node) => ({
         ...node,
         position: node.position ? { ...node.position } : undefined,
@@ -87,6 +93,16 @@ export class GameEngine {
 
   applyAction(action) {
     validateAction(action);
+
+    if (this.state.winnerId) {
+      return {
+        ok: false,
+        error: {
+          code: ERROR_CODES.GAME_OVER,
+          message: 'Game is already complete.',
+        },
+      };
+    }
 
     switch (action.type) {
       case ACTION_TYPES.END_TURN:
@@ -176,6 +192,8 @@ export class GameEngine {
         newOwnerId: updatedDefenderNode.ownerId,
       },
     });
+
+    this.#checkForVictory();
 
     return { ok: true, state: this.state };
   }
@@ -289,6 +307,50 @@ export class GameEngine {
     });
 
     return summary;
+  }
+
+  #checkForVictory() {
+    if (this.state.winnerId) {
+      return this.state.winnerId;
+    }
+
+    const winnerId = this.#detectWinner(this.state.board);
+    if (!winnerId) {
+      return null;
+    }
+
+    this.state = Object.freeze({
+      ...this.state,
+      winnerId,
+    });
+
+    this.eventBus.publish({
+      type: EVENT_TYPES.GAME_WON,
+      payload: { winnerId, turn: this.state.turn },
+    });
+
+    return winnerId;
+  }
+
+  #detectWinner(board) {
+    if (!board || board.nodes.size === 0) {
+      return null;
+    }
+
+    let winnerId = null;
+    for (const node of board.nodes.values()) {
+      if (!node.ownerId) {
+        return null;
+      }
+
+      if (winnerId === null) {
+        winnerId = node.ownerId;
+      } else if (node.ownerId !== winnerId) {
+        return null;
+      }
+    }
+
+    return winnerId;
   }
 
   #invalidAttack(message) {

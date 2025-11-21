@@ -132,6 +132,7 @@ test('executePolicyTurn resolves commands until the policy ends its turn', () =>
   const state = engine.getState();
   const conquered = state.board.nodes.get('n2');
   assert.equal(conquered.ownerId, 'alpha');
+  assert.equal(state.winnerId, 'alpha');
   assert.equal(state.turn.activePlayerId, 'alpha');
-  assert.equal(state.turn.number, 2);
+  assert.equal(state.turn.number, 1);
 });

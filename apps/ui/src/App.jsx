@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import core from '@graph-battle/core';
+import { createSimplePolicy, executePolicyTurn } from '@graph-battle/bots';
 import GameScreen from './components/GameScreen.jsx';
 import TitleScreen from './components/TitleScreen.jsx';
 import { formatEventLogEntry, DEFAULT_PLAYERS } from './utils/gameHelpers.js';
 import useDisplayInterpolator from './useDisplayInterpolator.js';
-import { ATTACK_ITERATION_MS, REINFORCEMENT_STEP_MS } from './constants.js';
 
 const STANDARD_BOARD_DIMENSIONS = Object.freeze({ rows: 7, columns: 6 });
+const HUMAN_PLAYER_ID = 'player-red';
 
 const {
   GameEngine,
@@ -41,6 +42,8 @@ export default function App() {
   const logCounterRef = useRef(0);
   const eventBusRef = useRef(null);
   const reinforcementLockRef = useRef(false);
+  const botPolicyRef = useRef(createSimplePolicy());
+  const botActiveRef = useRef(false);
   const [mode, setMode] = useState('menu');
   const [view, setView] = useState(null);
   const [players, setPlayers] = useState([]);
@@ -51,7 +54,9 @@ export default function App() {
 
   const [displayView, activeAnimation, isInteractionLocked] = useDisplayInterpolator(eventBusRef.current, view, () => engineRef.current?.getView(), animationSpeed);
 
-  const interactionLocked = isInteractionLocked || reinforcementLockRef.current;
+  const isHumanTurn = displayView?.currentPlayerId === HUMAN_PLAYER_ID;
+  const gameComplete = Boolean(displayView?.winnerId);
+  const interactionLocked = gameComplete || !isHumanTurn || isInteractionLocked || reinforcementLockRef.current;
 
   useEffect(() => {
     playersRef.current = new Map(players.map((player) => [player.id, player]));
@@ -75,6 +80,7 @@ export default function App() {
         eventBus.subscribe(EVENT_TYPES.TURN_STARTED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_ENDED, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.TURN_SKIPPED, appendEventLog),
+        eventBus.subscribe(EVENT_TYPES.GAME_WON, appendEventLog),
         eventBus.subscribe(EVENT_TYPES.REINFORCEMENTS_AWARDED, (event) => {
           appendEventLog(event);
           reinforcementLockRef.current = false;
@@ -85,6 +91,8 @@ export default function App() {
   );
 
   const startNewGame = useCallback(() => {
+    botActiveRef.current = false;
+    botPolicyRef.current = createSimplePolicy();
     const eventBus = new EventBus();
     eventBusRef.current = eventBus;
     playersRef.current = new Map(DEFAULT_PLAYERS.map((player) => [player.id, player]));
@@ -104,6 +112,21 @@ export default function App() {
     setReinforcementHighlights(new Set());
     reinforcementLockRef.current = false;
   }, [attachEventBus]);
+
+  const returnToMenu = useCallback(() => {
+    subscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
+    subscriptionsRef.current = [];
+    engineRef.current = null;
+    eventBusRef.current = null;
+    playersRef.current = new Map();
+    botActiveRef.current = false;
+    setMode('menu');
+    setView(null);
+    setPlayers([]);
+    setInteraction({ mode: 'idle', attackerId: null });
+    setEventLog([]);
+    setReinforcementHighlights(new Set());
+  }, []);
 
   const endTurn = useCallback(() => {
     if (!engineRef.current || interactionLocked) {
@@ -125,6 +148,17 @@ export default function App() {
       return new Map();
     }
     return new Map(displayView.nodes.map((node) => [node.id, node]));
+  }, [displayView]);
+
+  const winner = useMemo(() => {
+    if (!displayView?.winnerId) {
+      return null;
+    }
+
+    return playersRef.current.get(displayView.winnerId) ?? {
+      id: displayView.winnerId,
+      name: displayView.winnerId,
+    };
   }, [displayView]);
 
   const targetNodeIds = useMemo(() => {
@@ -154,7 +188,7 @@ export default function App() {
   }, [interaction.attackerId, view]);
 
   const highlightedEdges = useMemo(() => {
-    if (!interaction.attackerId || targetNodeIds.size === 0) {
+    if (!displayView || !interaction.attackerId || targetNodeIds.size === 0) {
       return new Set();
     }
     return new Set(
@@ -166,7 +200,7 @@ export default function App() {
 
   const handleNodeSelect = useCallback(
     (nodeId) => {
-      if (!engineRef.current || !view || interactionLocked) {
+      if (!engineRef.current || !view || interactionLocked || !isHumanTurn || gameComplete) {
         return;
       }
       const node = nodesById.get(nodeId);
@@ -204,7 +238,7 @@ export default function App() {
 
       return;
     },
-    [interaction.attackerId, interactionLocked, nodesById, targetNodeIds, view]
+    [gameComplete, interaction.attackerId, interactionLocked, isHumanTurn, nodesById, targetNodeIds, view]
   );
 
   const handleCancel = useCallback(() => {
@@ -212,7 +246,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (mode !== 'playing') {
+    if (mode !== 'playing' || gameComplete) {
       return undefined;
     }
     const listener = (event) => {
@@ -226,7 +260,7 @@ export default function App() {
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [mode, endTurn, handleCancel]);
+  }, [mode, endTurn, handleCancel, gameComplete]);
 
   useEffect(() => {
     if (!view || !view.reinforcements) {
@@ -246,6 +280,32 @@ export default function App() {
     const timer = setTimeout(() => setReinforcementHighlights(new Set()), 3500);
     return () => clearTimeout(timer);
   }, [view]);
+
+  useEffect(() => {
+    if (mode !== 'playing' || !engineRef.current) {
+      return;
+    }
+
+    const latestView = engineRef.current.getView();
+    if (!latestView || latestView.winnerId || latestView.currentPlayerId === HUMAN_PLAYER_ID) {
+      return;
+    }
+
+    if (isInteractionLocked || reinforcementLockRef.current || botActiveRef.current) {
+      return;
+    }
+
+    botActiveRef.current = true;
+    try {
+      const result = executePolicyTurn(engineRef.current, botPolicyRef.current);
+      if (!result.ok) {
+        throw result.error ?? new Error('Bot failed to execute turn.');
+      }
+      setView(engineRef.current.getView());
+    } finally {
+      botActiveRef.current = false;
+    }
+  }, [mode, isInteractionLocked, view]);
 
   const header = (
     <header className="app-header">
@@ -269,25 +329,42 @@ export default function App() {
             <TitleScreen onNewGame={startNewGame} />
           </>
         ) : (
-            <GameScreen
-              view={displayView}
-              players={players}
-              onEndTurn={endTurn}
-              onNodeSelect={handleNodeSelect}
-              interaction={interaction}
-              targetNodeIds={targetNodeIds}
-              eventLog={eventLog}
-              reinforcementHighlights={reinforcementHighlights}
-              gridDimensions={displayView?.grid}
-              highlightedEdges={highlightedEdges}
-              activeAnimation={activeAnimation}
-              interactionLocked={interactionLocked}
-              animationSpeed={animationSpeed}
-              onAnimationSpeedChange={setAnimationSpeed}
-            />
-          )}
+          <GameScreen
+            view={displayView}
+            players={players}
+            onEndTurn={endTurn}
+            onNodeSelect={handleNodeSelect}
+            interaction={interaction}
+            targetNodeIds={targetNodeIds}
+            eventLog={eventLog}
+            reinforcementHighlights={reinforcementHighlights}
+            gridDimensions={displayView?.grid}
+            highlightedEdges={highlightedEdges}
+            activeAnimation={activeAnimation}
+            interactionLocked={interactionLocked}
+            animationSpeed={animationSpeed}
+            onAnimationSpeedChange={setAnimationSpeed}
+          />
+        )}
+      </div>
+      {gameComplete && winner ? (
+        <div className="victory-overlay overlay" role="dialog" aria-modal="true">
+          <div className="victory-card card">
+            <p className="eyebrow">Game Over</p>
+            <h2>{winner.name} wins!</h2>
+            <p className="lede">Bots command every other color. Start a new round to challenge them again as Red.</p>
+            <div className="victory-card__actions">
+              <button type="button" className="primary-button" onClick={startNewGame}>
+                New Game
+              </button>
+              <button type="button" className="ghost-button" onClick={returnToMenu}>
+                Back to Menu
+              </button>
+            </div>
+          </div>
         </div>
-      </main>
+      ) : null}
+    </main>
   );
 }
 

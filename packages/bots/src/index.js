@@ -234,6 +234,11 @@ export function executePolicyTurn(engine, policy, { rng } = {}) {
 
   while (true) {
     const view = engine.getView();
+
+    if (view.status === 'complete') {
+      return { ok: true, state: engine.getState() };
+    }
+
     const command = policyFn(view, random);
 
     if (!command) {

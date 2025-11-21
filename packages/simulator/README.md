@@ -19,10 +19,10 @@ Arguments:
 
 - `--games` – number of games to run (default `1`).
 - `--seed` – optional integer seed for deterministic runs.
-- `--policy` – either `deterministic` (default) or `random`.
+- `--policy` – `simple` (default), `deterministic`, or `random`.
 
-The CLI reports game counts, win totals per player, average turn length, and draw counts.
+The CLI reports a JSON summary including game counts, win totals per player, average turn length, draw counts, the base seed used for the batch, and the policy name.
 
 ## Status
 
-The CLI currently supports deterministic and random bots, seeded runs, and summary reporting. Future work will add worker-based parallelism and richer analytics exports.
+The CLI currently supports deterministic, simple, and random policies, seeded runs, and JSON summary reporting. Future work will add worker-based parallelism and richer analytics exports.

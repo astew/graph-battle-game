@@ -7,14 +7,18 @@ import {
   runGames,
   runCli,
 } from '../src/index.js';
-import { createDeterministicBot } from '@graph-battle/bots';
+import { createDeterministicPolicy } from '@graph-battle/bots';
 
 test('describeSimulation summarizes configuration', () => {
   const players = [
     { id: 'red' },
     { id: 'green' },
   ];
-  const config = createSimulationConfig(players, () => createDeterministicBot());
+  const config = createSimulationConfig({
+    players,
+    policyFactory: () => createDeterministicPolicy(),
+    policyName: 'deterministic',
+  });
 
   const summary = describeSimulation(config, { nodes: [], currentPlayerId: 'red' });
   assert.match(summary, /2 players/);
@@ -29,7 +33,11 @@ test('runGames aggregates deterministic results with a fixed seed', () => {
     { id: 'delta', color: 'green' },
     { id: 'echo', color: 'purple' },
   ];
-  const config = createSimulationConfig(players, () => createDeterministicBot());
+  const config = createSimulationConfig({
+    players,
+    policyFactory: () => createDeterministicPolicy(),
+    policyName: 'deterministic',
+  });
   const summaryA = runGames(config, { games: 2, seed: 7 });
   const summaryB = runGames(config, { games: 2, seed: 7 });
 
@@ -40,6 +48,7 @@ test('runGames aggregates deterministic results with a fixed seed', () => {
 
 test('runCli produces a batch summary string', () => {
   const output = runCli(['node', 'script', '--games=1', '--seed=1']);
-  assert.match(output, /Games:/);
-  assert.match(output, /Wins:/);
+  const parsed = JSON.parse(output);
+  assert.equal(parsed.games, 1);
+  assert.equal(typeof parsed.wins, 'object');
 });

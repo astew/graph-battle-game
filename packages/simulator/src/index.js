@@ -1,6 +1,11 @@
 import { fileURLToPath } from 'node:url';
 
-import { createDeterministicBot, createRandomBot, executeBotTurn } from '@graph-battle/bots';
+import {
+  createDeterministicPolicy,
+  createRandomPolicy,
+  createSimplePolicy,
+  executePolicyTurn,
+} from '@graph-battle/bots';
 import {
   DEFAULT_PLAYER_COLORS,
   GameEngine,
@@ -9,17 +14,18 @@ import {
   createMulberry32,
 } from '@graph-battle/core';
 
-export function createSimulationConfig(players, botFactory) {
+export function createSimulationConfig({ players, policyFactory, policyName }) {
   if (!Array.isArray(players) || players.length === 0) {
     throw new Error('Simulation requires at least one player');
   }
-  if (typeof botFactory !== 'function') {
-    throw new Error('Simulation requires a botFactory(player) function');
+  if (typeof policyFactory !== 'function') {
+    throw new Error('Simulation requires a policyFactory(player) function');
   }
 
   return {
     players,
-    botFactory,
+    policyFactory,
+    policyName: policyName ?? policyFactory.name ?? 'policy',
   };
 }
 
@@ -59,7 +65,7 @@ export function runSingleGame(config, { seed, maxTurns } = {}) {
     eventBus: new EventBus(),
     rng,
   });
-  const bots = config.players.map((player, index) => config.botFactory(player, index));
+  const policies = config.players.map((player, index) => config.policyFactory(player, index));
   const limit = maxTurns ?? config.players.length * 200;
   let turns = 0;
 
@@ -70,8 +76,8 @@ export function runSingleGame(config, { seed, maxTurns } = {}) {
       return { winnerId, turns };
     }
 
-    const bot = bots[state.turn.orderIndex];
-    executeBotTurn(engine, bot);
+    const policy = policies[state.turn.orderIndex];
+    executePolicyTurn(engine, policy, { rng });
     turns += 1;
   }
 
@@ -102,6 +108,8 @@ export function runGames(config, { games = 1, seed = Date.now(), maxTurns } = {}
     draws,
     averageTurns: games > 0 ? totalTurns / games : 0,
     wins: Object.fromEntries(wins),
+    seed,
+    policy: config.policyName ?? 'policy',
   };
 }
 
@@ -114,20 +122,11 @@ function createDefaultPlayers() {
 }
 
 function formatSummary(summary) {
-  const parts = [
-    `Games: ${summary.games}`,
-    `Average Turns: ${summary.averageTurns.toFixed(2)}`,
-    `Draws: ${summary.draws}`,
-  ];
-  const winParts = Object.entries(summary.wins)
-    .map(([playerId, count]) => `${playerId}=${count}`)
-    .join(', ');
-  parts.push(`Wins: ${winParts}`);
-  return parts.join(' | ');
+  return JSON.stringify(summary);
 }
 
 function parseCliArgs(argv) {
-  const defaults = { games: 1, seed: undefined, policy: 'deterministic' };
+  const defaults = { games: 1, seed: undefined, policy: 'simple' };
   for (const arg of argv.slice(2)) {
     if (arg.startsWith('--games=')) {
       defaults.games = parseInt(arg.split('=')[1], 10);
@@ -143,8 +142,20 @@ function parseCliArgs(argv) {
 export function runCli(argv = process.argv) {
   const args = parseCliArgs(argv);
   const players = createDefaultPlayers();
-  const botFactory = args.policy === 'random' ? () => createRandomBot() : () => createDeterministicBot();
-  const config = createSimulationConfig(players, botFactory);
+  const policyFactory = () => {
+    if (args.policy === 'random') {
+      return createRandomPolicy();
+    }
+    if (args.policy === 'deterministic') {
+      return createDeterministicPolicy();
+    }
+    return createSimplePolicy();
+  };
+  const config = createSimulationConfig({
+    players,
+    policyFactory,
+    policyName: args.policy,
+  });
   const summary = runGames(config, { games: args.games, seed: args.seed });
   return formatSummary(summary);
 }

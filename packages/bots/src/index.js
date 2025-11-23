@@ -36,9 +36,14 @@ export function createEmptySnapshot(currentPlayerId) {
   });
 }
 
-export function enumerateLegalAttacks(view) {
+export function enumerateLegalAttacks(view, options = {}) {
   if (!view || typeof view !== 'object') {
     throw new Error('view is required to enumerate attacks.');
+  }
+
+  const { legalAttacks } = options;
+  if (Array.isArray(legalAttacks)) {
+    return legalAttacks.map((attack) => ({ ...attack }));
   }
 
   const { nodes = [], edges = [], currentPlayerId } = view;
@@ -78,12 +83,12 @@ export function enumerateLegalAttacks(view) {
   return attacks;
 }
 
-export function enumerateAttackCommands(view) {
+export function enumerateAttackCommands(view, options = {}) {
   if (!view || typeof view.currentPlayerId !== 'string' || view.currentPlayerId.length === 0) {
     return [];
   }
 
-  const attacks = enumerateLegalAttacks(view);
+  const attacks = enumerateLegalAttacks(view, options);
   if (attacks.length === 0) {
     return [];
   }
@@ -98,12 +103,12 @@ export function enumerateAttackCommands(view) {
 }
 
 export function createDeterministicPolicy() {
-  return (view) => {
+  return (view, _rng, options = {}) => {
     if (!view || typeof view.currentPlayerId !== 'string') {
       return null;
     }
 
-    const attacks = enumerateLegalAttacks(view);
+    const attacks = enumerateLegalAttacks(view, options);
     if (attacks.length === 0) {
       return null;
     }
@@ -124,12 +129,12 @@ export function createDeterministicPolicy() {
 }
 
 export function createRandomPolicy() {
-  return (view, rng) => {
+  return (view, rng, options = {}) => {
     if (!view || typeof view.currentPlayerId !== 'string') {
       return null;
     }
 
-    const attacks = enumerateLegalAttacks(view);
+    const attacks = enumerateLegalAttacks(view, options);
     if (attacks.length === 0) {
       return null;
     }
@@ -147,12 +152,12 @@ export function createRandomPolicy() {
 }
 
 export function createSimplePolicy() {
-  return (view) => {
+  return (view, _rng, options = {}) => {
     if (!view || typeof view.currentPlayerId !== 'string') {
       return null;
     }
 
-    const attacks = enumerateLegalAttacks(view).filter(
+    const attacks = enumerateLegalAttacks(view, options).filter(
       (attack) => attack.attackerStrength > attack.defenderStrength
     );
 
@@ -186,8 +191,8 @@ export function createSimplePolicy() {
 }
 
 function adaptLegacyBot(bot) {
-  return (view) => {
-    const legalAttacks = enumerateLegalAttacks(view);
+  return (view, _rng, options = {}) => {
+    const legalAttacks = enumerateLegalAttacks(view, options);
     if (legalAttacks.length === 0) {
       return null;
     }
@@ -239,7 +244,16 @@ export function executePolicyTurn(engine, policy, { rng } = {}) {
       return { ok: true, state: engine.getState() };
     }
 
-    const command = policyFn(view, random);
+    const validateAttack =
+      typeof engine.validateAttack === 'function'
+        ? (attack) => engine.validateAttack({
+            playerId: view.currentPlayerId,
+            attackerId: attack?.attackerId,
+            defenderId: attack?.defenderId,
+          })
+        : null;
+
+    const command = policyFn(view, random, { validateAttack });
 
     if (!command) {
       const endTurn = createEndTurnAction(view.currentPlayerId);

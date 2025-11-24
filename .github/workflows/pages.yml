@@ -2,7 +2,7 @@ name: Deploy React App
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
 
 jobs:
   build-and-deploy:
@@ -19,8 +19,17 @@ jobs:
 
       - run: npm run build
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (master)
+        if: github.ref == 'refs/heads/master'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: apps/ui/dist
+
+      - name: Deploy to GitHub Pages (develop)
+        if: github.ref == 'refs/heads/develop'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: apps/ui/dist
+          destination_dir: dev

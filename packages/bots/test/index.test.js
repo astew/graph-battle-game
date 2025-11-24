@@ -11,6 +11,8 @@ import {
 import {
   GameEngine,
   createBoardState,
+  createAttackAction,
+  createEndTurnAction,
   createMulberry32,
   EventBus,
 } from '@graph-battle/core';
@@ -135,4 +137,50 @@ test('executePolicyTurn resolves commands until the policy ends its turn', () =>
   assert.equal(state.winnerId, 'alpha');
   assert.equal(state.turn.activePlayerId, 'alpha');
   assert.equal(state.turn.number, 1);
+});
+
+test('executePolicyTurn shares engine validation without enumerating moves', () => {
+  const players = [
+    { id: 'alpha', color: 'red' },
+    { id: 'bravo', color: 'blue' },
+  ];
+  const board = createBoardState({
+    nodes: [
+      { id: 'attacker', ownerId: 'alpha', strength: 3, position: { row: 0, column: 0 } },
+      { id: 'target', ownerId: 'bravo', strength: 1, position: { row: 0, column: 1 } },
+    ],
+    edges: [['attacker', 'target']],
+    dimensions: { rows: 1, columns: 2 },
+  });
+  const boardGenerator = { generate: () => board };
+  const engine = new GameEngine({ players, boardGenerator, eventBus: new EventBus() });
+
+  const policy = (view, _rng, context = {}) => {
+    assert.equal(typeof context.validateAttack, 'function');
+
+    const friendly = context.validateAttack({
+      attackerId: 'attacker',
+      defenderId: 'attacker',
+    });
+    assert.equal(friendly.ok, false);
+
+    const attack = createAttackAction({
+      playerId: view.currentPlayerId,
+      attackerId: 'attacker',
+      defenderId: 'target',
+    });
+
+    const evaluation = context.validateAttack({
+      attackerId: attack.attackerId,
+      defenderId: attack.defenderId,
+    });
+    assert.equal(evaluation.ok, true);
+
+    return attack;
+  };
+
+  const result = executePolicyTurn(engine, policy);
+  assert.equal(result.ok, true);
+  const conquered = engine.getState().board.nodes.get('target');
+  assert.equal(conquered.ownerId, 'alpha');
 });

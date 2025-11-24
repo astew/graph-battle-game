@@ -91,6 +91,19 @@ export class GameEngine {
     };
   }
 
+  validateAttack({
+    playerId = this.state.turn.activePlayerId,
+    attackerId,
+    defenderId,
+  } = {}) {
+    return canExecuteAttack({
+      board: this.state.board,
+      playerId,
+      attackerId,
+      defenderId,
+    });
+  }
+
   applyAction(action) {
     validateAction(action);
 

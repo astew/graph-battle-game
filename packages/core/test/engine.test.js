@@ -172,6 +172,48 @@ test('GameEngine rejects illegal attacks', () => {
   assert.equal(result.error.code, 'core.error.invalidAttack');
 });
 
+test('GameEngine validates attacks without enumerating them', () => {
+  const board = createBoardState({
+    nodes: [
+      { id: 'a', ownerId: 'p1', strength: 3 },
+      { id: 'b', ownerId: 'p1', strength: 2 },
+      { id: 'c', ownerId: 'p2', strength: 1 },
+    ],
+    edges: [
+      ['a', 'b'],
+      ['a', 'c'],
+      ['b', 'c'],
+    ],
+  });
+
+  const engine = new GameEngine({
+    players: PLAYERS,
+    boardGenerator: new FixedBoardGenerator(board),
+  });
+
+  const friendlyEvaluation = engine.validateAttack({
+    playerId: 'p1',
+    attackerId: 'a',
+    defenderId: 'b',
+  });
+  assert.equal(friendlyEvaluation.ok, false);
+  assert.equal(friendlyEvaluation.reason, ATTACK_INELIGIBILITY_REASONS.INVALID_DEFENDER);
+
+  const hostileEvaluation = engine.validateAttack({
+    playerId: 'p1',
+    attackerId: 'a',
+    defenderId: 'c',
+  });
+  assert.equal(hostileEvaluation.ok, true);
+
+  const friendlyResult = engine.applyAction(
+    createAttackAction({ playerId: 'p1', attackerId: 'a', defenderId: 'b' })
+  );
+
+  assert.equal(friendlyResult.ok, false);
+  assert.equal(friendlyResult.error.code, ERROR_CODES.INVALID_ATTACK);
+});
+
 test('canExecuteAttack reflects engine attack rules', () => {
   const board = createBoardState({
     nodes: [
